@@ -12,8 +12,8 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 
 from pathlib import Path
 import os
-from django.core.management.utils import get_random_secret_key
-SECRET_KEY = get_random_secret_key()
+# from django.core.management.utils import get_random_secret_key
+# SECRET_KEY = get_random_secret_key()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 TEMPLATE_DIR = os.path.join(BASE_DIR, 'templates')
@@ -25,11 +25,10 @@ TEMPLATE_DIR = os.path.join(BASE_DIR, 'templates')
 SECRET_KEY = 'django-insecure--si4(6y_x9xny^g_v7u=idkxi#2e3z!wfrw&u#4e1jm&1w+mr#'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
 DEBUG = True
 
-ALLOWED_HOSTS = ['localhost', 'pythonanywhere.com', 'hsiao.pythonanywhere.com']
-ALLOWED_HOSTS = ['*']
+# ALLOWED_HOSTS = ['localhost', 'pythonanywhere.com', 'hsiao.pythonanywhere.com']
+# ALLOWED_HOSTS = ['*']
 
 
 # Application definition
