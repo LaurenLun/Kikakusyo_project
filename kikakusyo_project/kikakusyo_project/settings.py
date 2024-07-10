@@ -27,8 +27,8 @@ SECRET_KEY = 'django-insecure--si4(6y_x9xny^g_v7u=idkxi#2e3z!wfrw&u#4e1jm&1w+mr#
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-# ALLOWED_HOSTS = ['localhost', 'pythonanywhere.com', 'hsiao.pythonanywhere.com']
-# ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['localhost', 'laurenlun.pythonanywhere.com', '127.0.0.1']
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -122,7 +122,6 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 
 STATIC_URL = '/static/'
-
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
 LOGIN_REDIRECT_URL = '/accounts/home'
@@ -135,3 +134,4 @@ SESSION_COOKIE_SECURE = True
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
