@@ -1,14 +1,39 @@
 from typing import Any
-from django.http import HttpRequest
-from django.http.response import HttpResponse as HttpResponse
+from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render, redirect
-from django.views.generic.edit import CreateView, FormView
-from django.views.generic.base import TemplateView, View
+from django.views.generic import CreateView, TemplateView
+from django.views.generic.edit import FormView
 from .forms import RegistForm, UserLoginForm
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.views import LoginView, LogoutView
+from django.views.generic.base import View
+from .models import Users
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
+from django.contrib.auth.forms import UserCreationForm
+from django.contrib import messages
+# from .forms import SampleForm
 
 # Create your views here.
+
+# def sample_view(request):
+#     if request.method == 'POST':
+#         form = SampleForm(request.POST)
+#         if form.is_valid():
+#             form.save()
+#     else:
+#         form = SampleForm()
+#     return render(request, 'sample_template.html', {'form': form})
+
+def RegistUserView(request):
+    if request.method == 'POST':
+        form = SampleForm(request.POST)
+        if form.is_valid():
+            form.save()
+    else:
+        form = SampleForm()
+    return render(request, 'us_regist.html', {'form': form})
+
 
 class HomeView(TemplateView):
     template_name = 'home.html'
@@ -16,6 +41,19 @@ class HomeView(TemplateView):
 class RegistUserView(CreateView):
     template_name = 'us_regist.html'
     form_class = RegistForm
+    success_url = '/accounts/us_login/'
+    
+    def form_valid(self, form):
+        user = form.save(commit=False)
+        user.save()
+        messages.success(self.request, "ユーザー登録に成功しました")
+        return redirect(self.success_url)
+        # return super().form_valid(form)
+    
+    def form_invalid(self, form):
+        messages.error(self.request, form.errors)
+        return super().form_invalid(form)
+        # return self.render_to_response(self.get_context_data(form=form))
 
 # class UserLoginView(FormView):
 #     template_name = 'us_login.html'
@@ -33,11 +71,26 @@ class UserLoginView(LoginView):
     authentication_form = UserLoginForm
     
     def form_valid(self, form):
-        remember = form.cleaned_data['remember']
+        remember = form.cleaned_data.get('remember')
         if remember:
             self.request.session.set_expiry(1200000)
         return super().form_valid(form)
-
+    
+    def us_login(request):
+        userlogin_form = UserLoginForm(request.POST or None)
+        if userlogin_form.is_valid():
+            username = userlogin_form.cleaned_data.get('username')
+            password = userlogin_form.cleaned_data.get('password')
+            user = authenticate(username=username, password=password)
+        if user:
+            if user.is_active:
+                login(request, user)
+                return redirect('account:home')
+            else:
+                return HttpResponse('アカウントがアクティブでないです')
+        else:
+            return HttpResponse('ユーザーが存在しません')
+  
 
 class UserLogoutView(View):
     
