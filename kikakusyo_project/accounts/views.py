@@ -12,27 +12,8 @@ from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib import messages
-# from .forms import SampleForm
 
 # Create your views here.
-
-# def sample_view(request):
-#     if request.method == 'POST':
-#         form = SampleForm(request.POST)
-#         if form.is_valid():
-#             form.save()
-#     else:
-#         form = SampleForm()
-#     return render(request, 'sample_template.html', {'form': form})
-
-def RegistUserView(request):
-    if request.method == 'POST':
-        form = SampleForm(request.POST)
-        if form.is_valid():
-            form.save()
-    else:
-        form = SampleForm()
-    return render(request, 'us_regist.html', {'form': form})
 
 
 class HomeView(TemplateView):
