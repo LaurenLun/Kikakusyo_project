@@ -151,6 +151,7 @@ LOGOUT_REDIRECT_URL = '/accounts/us_login'
 
 SESSION_COOKIE_AGE = 300000 
 CSRF_COOKIE_SECURE = True
+CSRF_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SECURE = True
 CSRF_TRUSTED_ORIGINS = ['http://laurenlun.pythonanywhere.com']
 
