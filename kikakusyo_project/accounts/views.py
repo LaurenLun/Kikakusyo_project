@@ -10,11 +10,11 @@ from django.views.generic.base import View
 from .models import Users
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
-from django.contrib.auth.forms import UserCreationForm
+# from django.contrib.auth.forms import UserCreationForm
 from django.contrib import messages
+from django.contrib.auth.models import User
 
 # Create your views here.
-
 
 class HomeView(TemplateView):
     template_name = 'home.html'
@@ -25,10 +25,14 @@ class RegistUserView(CreateView):
     success_url = '/accounts/us_login/'
     
     def form_valid(self, form):
-        user = form.save(commit=False)
-        user.save()
-        messages.success(self.request, "ユーザー登録に成功しました")
-        return redirect(self.success_url)
+        try:
+            user = form.save(commit=False)
+            user.save()
+            messages.success(self.request, "ユーザー登録に成功しました")
+            return redirect(self.success_url)
+        except Exception as e:
+            print(e)
+            return render(self.request, 'error_page.html', {'error': str(e)})
         # return super().form_valid(form)
     
     def form_invalid(self, form):
