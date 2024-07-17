@@ -35,7 +35,7 @@ STATIC_DIR = os.path.join(BASE_DIR, 'statics')
 SECRET_KEY = 'django-insecure--si4(6y_x9xny^g_v7u=idkxi#2e3z!wfrw&u#4e1jm&1w+mr#'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = ['laurenlun.pythonanywhere.com', 'localhost', '127.0.0.1']
 CSRF_TRUSTED_ORIGINS = ['http://laurenlun.pythonanywhere.com']
