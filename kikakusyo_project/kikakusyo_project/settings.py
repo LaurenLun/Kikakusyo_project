@@ -35,7 +35,7 @@ STATIC_DIR = os.path.join(BASE_DIR, 'statics')
 SECRET_KEY = 'django-insecure--si4(6y_x9xny^g_v7u=idkxi#2e3z!wfrw&u#4e1jm&1w+mr#'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = ['laurenlun.pythonanywhere.com', 'localhost', '127.0.0.1']
 CSRF_TRUSTED_ORIGINS = ['http://laurenlun.pythonanywhere.com']
@@ -144,7 +144,7 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 # STATIC_ROOT = os.path.join(BASE_DIR, 'static')
-STATIC_ROOT = '/home/LaurenLun/laurenlun.pythonanywhere.com/static'
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
 LOGIN_REDIRECT_URL = '/accounts/home'
 LOGOUT_REDIRECT_URL = '/accounts/us_login'
@@ -152,6 +152,7 @@ LOGOUT_REDIRECT_URL = '/accounts/us_login'
 SESSION_COOKIE_AGE = 300000 
 CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_SECURE = True
+CSRF_TRUSTED_ORIGINS = ['http://laurenlun.pythonanywhere.com']
 
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 MEDIA_URL = '/media/'
