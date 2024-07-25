@@ -34,7 +34,7 @@ class PlanName(models.Model):
         return self.name
 
 class HotelPictures(models.Model):
-    image = models.ImageField(upload_to='hotel_pictures/', null=True)
+    image = models.FileField(upload_to='hotel_pictures/', null=True)
     hotel = models.ForeignKey(
         HotelName, related_name='pictures', on_delete=models.CASCADE
     )
@@ -50,7 +50,7 @@ class HotelPictures(models.Model):
 
 class PlanPictures(models.Model):
     plan = models.ForeignKey(PlanName, on_delete=models.CASCADE, related_name='pictures')
-    image = models.ImageField(upload_to='plan_pictures/')
+    image = models.FileField(upload_to='plan_pictures/')
     order = models.IntegerField(default=0)
     
     class Meta:
