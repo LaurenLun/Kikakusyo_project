@@ -1,0 +1,17 @@
+{% extends 'hotel_search.html' %}
+{% block content %}
+<table class="table table-striped table=bordered">
+    <thead>
+        <tr>
+            <th>ホテル支店一覧表</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for hotel in hotels %}
+        <tr>
+           <td><a href="{% url 'hotel:plan_list' hotel_id=hotel.id %}">{{ hotel.name }}</a></td>
+        </tr>>
+    {% endfor %}  
+    </tbody>
+</table>
+{% endblock %}

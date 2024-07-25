@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="col-10 offset-1">
+    <div class="container">
+        <div class="row">
+            <div class="col-12">
+                <h1>{{ hotel.name }}のプラン一覧表</h1>
+                <form method="get" action="{% url 'hotel:plan_list' pk=hotel.id %}">
+                    <p>値段で並び替える：
+                        昇順<input type="radio" name="order_by_price" value="1" {% if ascending %}checked{% endif %}>
+                        降順<input type="radio" name="order_by_price" value="2" {% if descending %}checked{% endif %}>
+                    </p>
+                    <p><input type="submit" value="実行する"/></p>
+                </form>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-12">
+                {% for plan in plans %}
+                    <div class="plan-container d-flex justify-content-between align-itmes-start mb-4">
+                        <div class="plan-info">
+                            <h3>{{ plan.name }} - {{ plan.room_type }} - {{ plan.price }}</h3>
+                            <ul>
+                                <li>人数： {{ plan.people }}</li>
+                                <li>部屋タイプ：{{ plan.room_type }}</li>
+                                <li>料金：{{ plan.price }}</li>
+                                {% if plan.stock %}
+                                    <li>
+                                        <input type="number" id="quantity_{{ plan.id }}" name="quantity" min="1" max="{{ object.stock }}"><br>
+                                        <button id="add_product_{{ plan.id }}" type="button" class="btn btn-primary">予約注文に追加</button>
+                                    </li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                        <div class="plan-images">
+                            {% for picture in plan.pictures.all %}
+                                <img width="300px" height="300px" src="{{ picture.image.url }}" alt="{{ plan.name }}">
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .plan-container {
+        border-bottom: 1px solid #ddd;
+        padding-right: 20px;
+    }
+    .plan-info {
+        flex: 1;
+        padding-right: 20px;
+    }
+    .plan-images {
+        flex-shrink: 0;
+    }
+</style>
+{% endblock %}

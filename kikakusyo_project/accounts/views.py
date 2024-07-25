@@ -84,8 +84,9 @@ class UserLogoutView(View):
         return redirect('accounts:us_login')
 
 
-class HotelResearchView(CreateView):
-    template_name = 'hotel_research.html'
+# class HotelResearchView(CreateView):
+#     template_name = 'hotel_search.html'
 
-class CyumonInfoView(CreateView):
-    template_name = 'cyumon_info.html'
+# class CyumonInfoView(CreateView):
+#     template_name = 'cyumon_info.html'
+
