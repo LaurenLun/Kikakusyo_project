@@ -19,7 +19,7 @@ def plan_list_view(request):
     return render(request, 'hotel/plan_list.html', {'plans': plans})
 
 
-class HotelSearchView(LoginRequiredMixin, ListView):
+class HotelSearchView(ListView):
     model = HotelName
     template_name = 'hotel/hotel_search.html'
     context_object_name = 'hotels'
@@ -32,7 +32,7 @@ class HotelListView(LoginRequiredMixin, ListView):
     template_name = os.path.join('hotel/hotel_list.html')
     context_object_name = 'hotels'
     
-class PlanListView(LoginRequiredMixin, ListView):
+class PlanListView(ListView):
     model = PlanName
     template_name = os.path.join('hotel/plan_list.html')
     context_object_name = 'plans'
