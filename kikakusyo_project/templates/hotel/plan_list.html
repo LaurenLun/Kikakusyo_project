@@ -6,32 +6,93 @@
             <div class="col-12">
                 <h1>{{ hotel.name }}のプラン一覧表</h1>
                 <form method="get" action="{% url 'hotel:plan_list' pk=hotel.id %}">
+                    {% csrf_token %}
+                    <p>検索したい部屋タイプ: 
+                        <select name="room_type"> 
+                            <option value="全部屋タイプ" {% if room_type == '全部屋タイプ' or not room_type %}selected{% endif %}>全部屋タイプ</option>
+                            <option value="シングルルーム" {% if room_type == 'シングルルーム' %}selected{% endif %}>シングルルーム</option>
+                            <option value="クラシックルーム" {% if room_type == 'クラシックルーム' %}selected{% endif %}>クラシックルーム</option>
+                            <option value="ダブルルーム" {% if room_type == 'ダブルルーム' %}selected{% endif %}>ダブルルーム</option>
+                            <option value="ツインルーム" {% if room_type == 'ツインルーム' %}selected{% endif %}>ツインルーム</option>
+                        </select>
+                    </p>
                     <p>値段で並び替える：
                         昇順<input type="radio" name="order_by_price" value="1" {% if ascending %}checked{% endif %}>
                         降順<input type="radio" name="order_by_price" value="2" {% if descending %}checked{% endif %}>
                     </p>
+                    <p>チェックイン日： <input type="date" name="checkin" value="{{ checkin_date }}"></p>
+                    <p>チェックアウト日： <input type="date" name="checkout" value="{{ checkout_date }}"></p>
                     <p><input type="submit" value="実行する"/></p>
                 </form>
             </div>
         </div>
         <div class="row">
             <div class="col-12">
+            {% if plans %}
                 {% for plan in plans %}
                     <div class="plan-container d-flex justify-content-between align-itmes-start mb-4">
-                        <div class="plan-info">
-                            <h3>{{ plan.name }} - {{ plan.room_type }} - {{ plan.price }}</h3>
+                        <div class="plan-info p-3 border">
+                            <h1>{{ plan.name|default:"No Name" }}</h1>
+                            <h6>人数： {{ plan.people|default:"N/A" }}</h6>
+                            <h6>部屋タイプ： {{ plan.room_type|default:"N/A" }}</h6>
+                            <h6>料金： {{ plan.price|default:"N/A" }}円</h6>
+                        </div>
+                        <div class="plan-details p-3 border">
                             <ul>
-                                <li>人数： {{ plan.people }}</li>
-                                <li>部屋タイプ：{{ plan.room_type }}</li>
-                                <li>料金：{{ plan.price }}</li>
+                                {% comment %} <li>チェックイン日： {{ plan.checkin|date:"Y-m-d" }}</li>
+                                <li>チェックアウト日： {{ plan.checkout|date:"Y-m-d" }}</li> {% endcomment %}
+                                <li>プラン名：{{ plan.name }}</li>
+                                <li>料金：{{ plan.price }}円</li>
+                                <li>残部屋数：{{ plan.stock }}部屋</li>
                                 {% if plan.stock %}
-                                    <li>
-                                        <input type="number" id="quantity_{{ plan.id }}" name="quantity" min="1" max="{{ object.stock }}"><br>
-                                        <button id="add_product_{{ plan.id }}" type="button" class="btn btn-primary">予約注文に追加</button>
-                                    </li>
+                                    {% if is_added %}
+                                        <p class="btn btn-danger">予約注文に追加済みです</p>
+                                    {% else %}
+                                        <li>数量：
+                                            <input type="number" id="quantity_{{ plan.id }}" name="quantity" min="1" max="{{ plan.stock }}"><br>
+                                            <button id="add_product_{{ plan.id }}" type="button" class="btn btn-primary add-to-cart">予約注文に追加</button>
+                                        </li>
+                                    {% endif %}
                                 {% endif %}
                             </ul>
                         </div>
+                        <script>
+                            $(document).ready(function(){
+                                var isRequestSent = false;
+
+                                $('.add-to-cart').click(function(){
+                                    if (isRequestSent) return;
+
+                                    var planId = $(this).attr('id').split('_')[2];
+                                    var quantity = $("#quantity_" + planId).val();
+
+                                    isRequestSent = true;
+
+                                    $.ajax({
+                                        url: '{% url "hotel:add_product" %}',
+                                        method: "POST",
+                                        data: {
+                                            product_id: planId, 
+                                            quantity: quantity,
+                                            csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val()
+                                        },
+                                        success: function(response){
+                                            alert(response.message);
+                                            isRequestSent = false;
+                                        },
+                                        error: function(xhr){
+                                            if (xhr.status === 401) {
+                                                alert(xhr.responseJSON.message);
+                                                window.location.href = xhr.responseJSON.redirect;
+                                            } else {
+                                                alert('エラーが発生しました');
+                                            }
+                                            isRequestSent = false;   
+                                        }
+                                    });
+                                });
+                            });
+                        </script>
                         <div class="plan-images">
                             {% for picture in plan.pictures.all %}
                                 <img width="300px" height="300px" src="{{ picture.image.url }}" alt="{{ plan.name }}">
@@ -39,6 +100,7 @@
                         </div>
                     </div>
                 {% endfor %}
+            {% endif %}
             </div>
         </div>
     </div>
@@ -48,15 +110,77 @@
 {% block extra_css %}
 <style>
     .plan-container {
-        border-bottom: 1px solid #ddd;
-        padding-right: 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 20px;
+        width: 100%;
     }
-    .plan-info {
+    .plan-info, .plan-details {
+        border: 1px solid #ccc;
+        padding: 20px;
+        margin-right: 20px;
         flex: 1;
-        padding-right: 20px;
+        min-width: 200px;
+        display: flex;
+        flex-direction: column;
     }
     .plan-images {
         flex-shrink: 0;
     }
+    .plan-info h1, .plan-info h6, .plan-details ul {
+        margin: 0;
+        padding: 0;
+    } 
+    .plan-details ul {
+        list-style: none;
+        padding-left: 0;
+    }
+    .plan-info, .plan-details, .plan-images {
+        max-width: 300px;
+    }
+    .plan-info h1, .plan-info h6 {
+        text-align: center;
+    }
 </style>
 {% endblock %}
+
+{% comment %} {% block extra_js %}
+<script>
+    $(document).ready(function(){
+        var isRequestSent = false;
+
+        $('.add-to-cart').click(function(){
+            if (isRequestSent) return;
+
+            var planId = $(this).attr('id').split('_')[2];
+            var quantity = $("#quantity_" + planId).val();
+
+            isRequestSent = true;
+
+            $.ajax({
+                url: '{% url "hotel:add_product" %}',
+                method: "POST",
+                data: {
+                    product_id: planId, 
+                    quantity: quantity,
+                    csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val()
+                },
+                success: function(response){
+                    alert(response.message);
+                    isRequestSent = false;
+                },
+                error: function(xhr){
+                    if (xhr.status === 401) {
+                        alert(xhr.responseJSON.message);
+                        window.location.href = xhr.responseJSON.redirect;
+                    } else {
+                        alert('エラーが発生しました');
+                    }
+                    isRequestSent = false;   
+                }
+            });
+        });
+    });
+</script>
+{% endblock %} {% endcomment %}

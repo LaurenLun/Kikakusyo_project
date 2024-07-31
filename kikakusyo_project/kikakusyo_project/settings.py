@@ -160,6 +160,7 @@ STATIC_URL = '/static/'
 # STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
+LOGIN_URL = '/accounts/us_login'
 LOGIN_REDIRECT_URL = '/accounts/home'
 LOGOUT_REDIRECT_URL = '/accounts/us_login'
 

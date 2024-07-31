@@ -1,6 +1,7 @@
 from django.db import models
-from datetime import datetime
+from datetime import time, datetime
 from accounts.models import Users
+from django.contrib.auth.models import User
 # from .forms import HotelForm
 
 # Create your models here.
@@ -20,10 +21,12 @@ class PlanName(models.Model):
     name = models.CharField(max_length=1000)
     people = models.IntegerField()
     room_type = models.CharField(max_length=1000)
-    price = models.DecimalField(max_digits=8, decimal_places=2)
+    price = models.DecimalField(max_digits=6, decimal_places=0)
     hotel = models.ForeignKey(HotelName, on_delete=models.CASCADE, default=1)
     stock = models.PositiveIntegerField(default=0)
     order = models.IntegerField(default=0)
+    checkin = models.DateField(null=True, blank=True)
+    checkout = models.DateField(null=True, blank=True)
     # picture = models.FileField(upload_to='hotel_pictures/', null=True)
     
     class Meta:
@@ -62,8 +65,8 @@ class PlanPictures(models.Model):
         return f"(self.plan.name) - Picture {self.order}"
 
 class CyumonInfo(models.Model):
-    checkin = models.DateTimeField(default=datetime.now())
-    checkout = models.DateTimeField(default=datetime.now())
+    checkin = models.DateTimeField(default=datetime.now)
+    checkout = models.DateTimeField(default=datetime.now)
     room_type = models.CharField(max_length=50)
     price = models.IntegerField()
     stock = models.IntegerField()
@@ -82,15 +85,35 @@ class Carts(models.Model):
     class Meta:
         db_table = 'carts'
         
+class CartItemsManager(models.Manager):
+    def add_or_update_item(self, product_id, quantity, cart):
+        cart_item, created = self.get_or_create(product_id=product_id, cart=cart)
+        if not created:
+            cart_item.quantity += quantity
+        else:
+            cart_item.quantity = quantity
+        cart_item.save()
+        return cart_item
+       
+    def save_item(self, product_id, quantity, cart):
+        c = self.model(quantity=quantity, product_id=product_id, cart=cart)
+        c.save()
+        
 class CartItems(models.Model):
-    quantity = models.PositiveIntegerField()
+    quantity = models.PositiveIntegerField(default=1)
     product = models.ForeignKey(
         PlanName, on_delete=models.CASCADE
     )
     cart = models.ForeignKey(
         Carts, on_delete=models.CASCADE
     )
+    objects = CartItemsManager()
     
     class Meta:
         db_table = 'cart_items'
-        unique_together = [['product', 'cart']]
+        unique_together = ('product', 'cart')
+
+class PlanListCalendar(models.Model):
+    plans = models.ForeignKey(PlanName, on_delete=models.CASCADE)
+    start = models.DateTimeField()
+    end = models.DateTimeField()
