@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="col-10 offset-1">
+    <h2>予約情報を設定してください</h2>
+    <hr>
+    <form method="POST">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <input type="submit" value="予約情報を設定する">
+    </form>
+    <hr>
+    <h3>過去に利用した予約情報</h3>
+    {% for useraddress in useraddresses %}
+        <p><a href={% url 'hotel:input_useraddresses' pk=useraddress.id %}>{{ useraddress }}</a></p>
+    {% endfor %}
+</div>
+{% endblock%}

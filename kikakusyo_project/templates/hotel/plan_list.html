@@ -58,15 +58,19 @@
                         </div>
                         <script>
                             $(document).ready(function(){
-                                var isRequestSent = false;
+                                var requestInProgress = false;
 
-                                $('.add-to-cart').click(function(){
-                                    if (isRequestSent) return;
+                                $('.add-to-cart').click(function(e){
+                                    e.preventDefault();
 
-                                    var planId = $(this).attr('id').split('_')[2];
+                                    if (requestInProgress) return;
+
+                                    var button = $(this);
+                                    var planId = button.attr('id').split('_')[2];
                                     var quantity = $("#quantity_" + planId).val();
 
-                                    isRequestSent = true;
+                                    requestInProgress = true;
+                                    button.prop('disabled', true);
 
                                     $.ajax({
                                         url: '{% url "hotel:add_product" %}',
@@ -78,16 +82,19 @@
                                         },
                                         success: function(response){
                                             alert(response.message);
-                                            isRequestSent = false;
+                                            button.text('予約注文に追加済み');
                                         },
                                         error: function(xhr){
                                             if (xhr.status === 401) {
                                                 alert(xhr.responseJSON.message);
                                                 window.location.href = xhr.responseJSON.redirect;
                                             } else {
-                                                alert('エラーが発生しました');
+                                                alert(xhr.responseJSON.message || 'エラーが発生しました');
                                             }
-                                            isRequestSent = false;   
+                                        },
+                                        complete: function() {
+                                            requestSent = false;
+                                            button.prop('disabled', false);
                                         }
                                     });
                                 });
@@ -184,3 +191,4 @@
     });
 </script>
 {% endblock %} {% endcomment %}
+

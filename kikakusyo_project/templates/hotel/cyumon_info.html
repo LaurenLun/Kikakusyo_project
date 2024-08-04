@@ -2,48 +2,103 @@
 {% block content %}
 <div class="col-10 offset-1">
     {% if items %}
-        <table>
-        <tbody>
+        <div style="display: flex; flex-direction: column;">
             {% for item in items %}
-            <tr>
-                {% comment %} <td style="width:40%">
-                    <div class="plan-info p-3 border"> {% endcomment %}
-                        {% if plans %}
-                            {% for plan in plans %}
-                                <h1>{{ plan.name }}</h1>
-                                <h6>人数： {{ plan.people }}</h6>
-                                <h6>部屋タイプ： {{ plan.room_type }}</h6>
-                                <h6>料金： {{ plan.price }}円</h6>
-                            {% endfor %}
-                        {% endif %}
+                <div style="border: 1px solid black; margin-bottom: 20px; padding: 10px;">
+                    <div style="display: flex;">
+                        <div style="flex: 1; text-align: center;">
+                            {% if item.picture %}
+                            <img src="{{ item.picture }}" alt="ホテル画像" style="max-width: 300px; max-height: 300px;">
+                            {% endif %}
+                        </div>
+                        <div style="flex: 3;">
+                            <h6>ホテル名： {{ item.hotel_name }}</h6>
+                            <h6>プラン名： {{ item.name }}</h6>
+                            <h6>チェックイン日： {{ item.checkin }}</h6>
+                            <h6>チェックアウト日： {{ item.checkout }}</h6>
+                            <h6>料金： {{ item.price }}円</h6>
+                            <h6>数量： {{ item.quantity }}個</h6>
+                            {% if not item.in_stock %}
+                            <p style="color: red;">残室数を超えています。変更してください</p>
+                            {% endif %}
+                        </div>
+                        <div style="flex: 1; text-align: right;">
+                            <a class="btn btn-primary" href="{% url 'hotel:cyumoninfo_update' pk=item.id %}">変更する</a>
+                            <a class="btn btn-danger" href="{% url 'hotel:cyumoninfo_delete' pk=item.id %}">削除する</a>
+                        </div>
                     </div>
-                </td>
-                <td style="width:20%">
-                    {% if item.picture %}
-                    <img width="75px" height="75px" src="{{ item.picture }}">
-                    {% endif %}
-                </td>
-                <td style="width:20">
-                    {{ item.name }}<br>{{ item.price }}円
-                </td>
-                <td>
-                    {{ item.quantity }}個<br>
-                    {% if not item.in_stock %}
-                        残室数を超えています。変更してください。
-                    {% endif %}
-                </td>
-                <td align="right">
-                    <a class="btn btn-primary" href="{% url 'hotel:cyumoninfo_update' pk=item.id %}">変更する</a>
-                    <a class="btn btn-danger" href="{% url 'hotel:cyumoninfo_delete' pk=item.id %}">削除する</a>
-                </td>
-            </tr>
+                </div>
             {% endfor %}
-        </tbody>
-        </table>
-        <hr>
-        <h3 class="offset-9">合計： {{ total_price }}円</h3>
+        </div>
+        <div style="flex: 1;">
+            <div class="order-summary">
+                <form method="post" action="{% url 'hotel:confirm_order' %}" class="kupon-form">
+                    {% csrf_token %}
+                    <label for="kupon_amount">使用クーポン額：</label>
+                    <input type="number" id="kupon_amount" name="kupon_amount" value="{{ kupon_amount }}" min="0">            
+                    <span>円分</span>
+                    <p>合計： {{ total_price }}円</p>
+                    <button type="submit" class="btn btn-primary" href="{% url 'hotel:input_useraddresses' %}?kupon_amount={{ kupon_amount }}" class="btn btn-primary">予約情報を入力する</button>
+                </form>
+            </div>
+        </div>
     {% else %}
         <h2>予約注文に予約が取られていません</h2>
     {% endif %}
 </div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.order-info-container {
+    display: grid;
+    grid-template-columns: repeat(1, 1fr);
+    gap: 1rem;
+}
+
+.order-info {
+    display: flex;
+    justify-content: space-between;
+    border: 1px solid #ccc;
+    padding: 1rem;
+    border-radius: 8px;
+}
+
+.plan-info, .check-info {
+    flex: 1;
+    padding: 0 1rem;
+}
+
+.plan-info h2 {
+    margin-bottom: 0.5rem;
+}
+
+.check-info p {
+    margin: 0.5rem 0;
+}
+
+.total-price {
+    text-align: right;
+    margin-top: 1rem;
+}
+
+.order-summary {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    margin-top: 20px;
+}
+
+.kupon-form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.kupon-form label, .kupon-form input, .kupon-form span {
+    margin-bottom: 10px;
+}
+
+
+</style>
 {% endblock %}

@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% block content %}
+<p>{{ useraddresses.last_name }}{{ useraddresses.first_name }}さん、予約情報と予約注文を確認をお願いいたします</p>
+<p>名前(姓): {{ useraddresses.last_name |default_if_none:'' }}</p>
+<p>名前(名): {{ useraddresses.first_name |default_if_none:'' }}</p>
+<p>郵便番号: {{ useraddresses.zip_code |default_if_none:'' }}</p>
+<p>住所: {{ useraddresses.address |default_if_none:'' }}</p>
+<p>電話番号: {{ useraddresses.phone_number |default_if_none:'' }}</p>
+<table class="table">
+<tbody>
+    {% for item in items %}
+        <tr>
+            <td style="width:20%; vertical-align: middle;">
+                {% if item.picture %}
+                    <img width="75px" height="75px" src="{{ item.picture.url }}">
+                {% endif %}
+            </td>
+            <td style="width:60%; vertical-align: middle;">
+                {{ item.hotel_name }} - {{ item.name }}<br>
+                人数：{{ item.people }}人<br>
+                部屋タイプ：{{ item.room_type }}<br>
+                料金：{{ item.price }}円
+            </td>
+            <td style="width:20%; text-align: left; vertical-align: middle">
+                チェックイン日：{{ item.checkin }}<br>
+                チェックアウト日： {{ item.checkout }}<br>
+                プラン名：{{ item.name }}<br>
+                料金： {{ item.price }}円<br>
+                使用クーポン額： {{ item.kupon|default:"0" }}円分<br>
+                部屋数：{{ item.quantity }}部屋</td>
+        </tr>
+    {% endfor %}
+</tbody>
+</table>
+<hr>
+<p><a href="{% url 'hotel:cyumon_info' %}">予約注文へ</a></p>
+<p><a href="{% url 'hotel:input_useraddresses' %}">予約情報の入力へ</a></p>
+<h3 class="offset-9">合計： {{ total_price|default:"0" }}円</h3>
+<br>
+<form method="POST" action="{% url 'hotel:confirm_order' %}" class="offset-10">
+    {% csrf_token %}
+    <input type="hidden" name="kupon_amount" value="{{ kupon_amount }}">
+    <button type="submit" class="btn btn-primary">予約注文を確定する</button>
+</form>    
+{% endblock%}

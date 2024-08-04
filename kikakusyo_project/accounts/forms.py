@@ -6,7 +6,6 @@ from django.core.exceptions import ValidationError
 import re
 from django.contrib.auth.forms import AuthenticationForm
 
-
 def validate_phone_number(value):
     pattern = r'^(\d{3}-\d{4}-\d{4}|\d{11})$'
     if not re.match(pattern, value):
@@ -84,4 +83,3 @@ class UserLoginForm(AuthenticationForm):
     username = forms.EmailField(label='メールアドレス', max_length=150)
     password = forms.CharField(label='パスワード', widget=forms.PasswordInput())
     remember = forms.BooleanField(label='ログイン状態を保持する', required=False)
-    
