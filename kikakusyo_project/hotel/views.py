@@ -32,6 +32,7 @@ from django.core.cache import cache
 from django.views.decorators.http import require_POST
 from django.db import transaction
 from django.forms.models import model_to_dict
+from django.contrib import messages
 # from .forms import HotelForm
 # Create your views here.
 
@@ -249,7 +250,8 @@ def add_product(request):
             cart_item.quantity = quantity
             cart_item.save()
             
-            return JsonResponse({'message': '希望するプランを予約注文に追加しました'})
+            cart_count = cart.cartitems_set.count()
+            return JsonResponse({'message': '希望するプランを予約注文に追加しました', 'cart_count': cart_count})
               
         except ValueError:
             return JsonResponse({'message': '無効の数値です'}, status=400)
@@ -257,6 +259,13 @@ def add_product(request):
         except Exception as e:
             logger.error(f"Error adding product to cart: {e}")
             return JsonResponse({'message': str(e)}, status=400)
+    
+    if not created:
+        if cart_item.quantity + quantity > product.stock:
+            return JsonResponse({'message': '部屋数を超えています'}, status=400)
+        cart_item.quantity += quantity
+        cart_item.save()
+        return JsonResponse({'message': 'プランの数量を更新しました'})
         
     return JsonResponse({'message': '無効なリクエストです'}, status=400)
 
@@ -275,8 +284,14 @@ class CyumonInfoDeleteView(LoginRequiredMixin, DeleteView):
 class InputUserAddressesView(LoginRequiredMixin, CreateView):
     template_name = os.path.join('hotel', 'input_useraddresses.html')
     form_class = UserAddressesInputForm
-    success_url = reverse_lazy('hotel:confirm_order')
+    # success_url = reverse_lazy('hotel:confirm_order')
     model = UserAddresses
+    
+    def get_object(self, queryset=None):
+        pk = self.kwargs.get('pk')
+        if pk:
+            return get_object_or_404(UserAddresses, pk=pk, user=self.request.user)
+        return None
     
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -284,33 +299,42 @@ class InputUserAddressesView(LoginRequiredMixin, CreateView):
         return kwargs
 
     def get(self, request, *args, **kwargs):
-        pk = kwargs.get('pk')
         cart, created = Carts.objects.get_or_create(user=self.request.user)
         if not cart.cartitems_set.all():
-            raise Http404('商品が入っていません')
-        # return super().get(request)
+            messages.error(request, '購物車に商品がありません')
+            return redirect('hotel:cyumon_info')
         
-        if pk:
-            self.object = get_object_or_404(UserAddresses, pk=pk, user=self.request.user)
-            form = self.get_form()
-            form.initial = model_to_dict(self.object)
-        else:
-            form = self.get_form()
+        self.object = None
+        # pk = kwargs.get('pk')
+        # cart, created = Carts.objects.get_or_create(user=self.request.user)
+        return super().get(request, *args, **kwargs)
         
-        return self.render_to_response(self.get_context_data(form=form))
+        # if pk:
+        #     self.object = get_object_or_404(UserAddresses, pk=pk, user=self.request.user)
+        #     form = self.get_form()
+        #     form.initial = model_to_dict(self.object)
+        # else:
+        #     form = self.get_form()
+        
+        # return self.render_to_response(self.get_context_data(form=form))
+        
+    def post(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        return super().post(request, *args, **kwargs)
     
     def form_valid(self, form):
         form.instance.user = self.request.user
-        response = super().form_valid(form)
+        return super().form_valid(form)
+    
+    def get_success_url(self):
+        # return reverse('hotel:confirm_order')
         
-        cache.set(f'address_user_{self.request.user.id}', form.instance, timeout=None)
+        # cache.set(f'address_user_{self.request.user.id}', form.instance, timeout=None)
         
         kupon_amount = self.request.GET.get('kupon_amount', 0)
-        
-        # url = reverse('hotel:confirm_order')
+        return f"{reverse('hotel:confirm_order')}?address_id={self.object.id}&kupon_amount={kupon_amount}"
         # url += f'?address_id={form.instance.id}&kupon_amount={kupon_amount}'
         
-        return redirect(reverse('hotel:confirm_order') + f'?address_id={form.instance.id}&kupon_amount={kupon_amount}')  
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -324,8 +348,13 @@ class InputUserAddressesView(LoginRequiredMixin, CreateView):
             context['form'].fields['zip_code'].initial = address.zip_code
             context['form'].fields['address'].initial = address.address
             context['form'].fields['phone_number'].initial = address.phone_number
+        
+        else:
+            address = cache.get(f'address_user_{self.request.user.id}')
+            if address:
+                context['form'].initial = model_to_dict(address)
+        
         context['useraddresses'] = UserAddresses.objects.filter(user=self.request.user).all()
-
         return context
     
 
@@ -343,11 +372,15 @@ class ConfirmOrderView(LoginRequiredMixin, TemplateView):
         
         
     def get(self, request, *args, **kwargs):
-        context = self.get_context_data(**kwargs)
-        return self.render_to_response(context)
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
+        # context = self.get_context_data(**kwargs)
+        # return self.render_to_response(context)
+        # useraddresses = context.get('useraddresses')
+        
+        cart, created = Carts.objects.get_or_create(user=self.request.user)
+        if not cart.cartitems_set.exists():
+            messages.error(request, '購物車に商品がありません')
+            return redirect('hotel:cyumon_info')
+       
         address_id = self.request.GET.get('address_id')
         
         if address_id:
@@ -355,18 +388,57 @@ class ConfirmOrderView(LoginRequiredMixin, TemplateView):
         else:
             useraddresses = cache.get(f'address_user_{self.request.user.id}')
         if not useraddresses:
+            # messages.error(request, '住所情報が見つかりません')
             return redirect('hotel:input_useraddresses')
-            
-        print(f"Debug: useraddresses = {useraddresses}")
-        context['useraddresses'] = useraddresses
-        context['kupon_amount'] = self.request.GET.get('kupon_amount', 0)
         
-        cart, created = Carts.objects.get_or_create(user=self.request.user)
-        # if not cart.id:
-        #     cart.save()
-        # if created:
-        #     cart.save()
-        context['cart'] = cart 
+        context = self.get_context_data(useraddresses=useraddresses)
+        return self.render_to_response(context)
+    
+        # if context.get('cart_empty'):
+        #     messages.error(request, '購物車に商品がありません')
+        #     return redirect('hotel:cyumon_info')
+    
+        
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        cart = Carts.objects.filter(user=self.request.user).first()
+        useraddresses = kwargs.get('useraddresses')
+        # address_id = self.request.GET.get('address_id')
+        if not cart:
+            logger.warning(f"No cart found for user {self.request.user}")
+            return context
+        
+        # if address_id:
+        #     useraddresses = get_object_or_404(UserAddresses, id=address_id, user=self.request.user)
+        # else:
+        #     useraddresses = cache.get(f'address_user_{self.request.user.id}')
+        # if not useraddresses:
+        #     return context
+            
+        # print(f"Debug: useraddresses = {useraddresses}")
+        context['cart'] = cart
+        context['useraddresses'] = UserAddresses.objects.filter(user=self.request.user).first()
+        context['kupon_amount'] = self.request.GET.get('kupon_amount', 0)
+        context['total_price'] = sum(item.product.price * item.quantity for item in cart.cartitems_set.all())
+       
+        # cart, created = Carts.objects.get_or_create(user=self.request.user)
+        
+        # if not cart.cartitems_set.exists():
+        #     messages.error(request, '購物車に商品がありません')
+        #     return redirect('hotel:cyumon_info')
+        if cart:
+            context['cart'] = cart 
+        else:
+            context['cart'] = None
+            context['total_price'] = 0
+            context['items'] = []
+        
+        # if not cart.cartitems_set.exists():
+        #     context['cart_empty'] = True
+        #     return context
+
+        
         total_price = 0
         items = []
         
@@ -395,17 +467,40 @@ class ConfirmOrderView(LoginRequiredMixin, TemplateView):
     
     @transaction.atomic
     def post(self, request, *args, **kwargs):
+        logger.info("Starting order confirmation process")
         context = self.get_context_data()
         useraddresses = context.get('useraddresses')
         cart = context.get('cart')
         # if not cart.id:
         #     cart.save()
-        # if not cart:
-        #     messages.error(request, '購物車不存在')
-        #     return redirect('hotel:cyumon_info') 
+        
+        logger.debug(f"User: {request.user}, Cart: {cart}, Useraddresses: {useraddresses}")
+        
+        if not cart:
+            logger.warning("Cart is empty, redirecting to cyumon_info")
+            messages.error(request, '購物車が空です')
+            return redirect('hotel:cyumon_info') 
+        
+        if not cart.cartitems_set.exists():
+            logger.warning("No items in cart, redirecting to cyumon_info")
+            messages.error(request, '購物車に商品がありません')
+            return redirect('hotel:cyumon_info')
+        
+        
+        if not useraddresses:
+            messages.error(request, '住所情報が見つかりません')
+            return redirect('hotel:input_useraddresses')
             
         total_price = context.get('total_price', 0)
         kupon_amount_str = request.POST.get('kupon_amount', 0)
+        
+        logger.debug(f"Total price: {total_price}, Kupon amount: {kupon_amount_str}")
+        
+        if total_price <= 0:
+            logger.warning("Invalid total price, redirecting to cyumon_info")
+            messages.error(request, '合計金額が無効です')
+            return redirect('hotel:cyumon_info')
+        
         try: 
             kupon_amount = int(kupon_amount_str) if kupon_amount_str else 0
             actual_total_price = float(total_price or 0) - kupon_amount
@@ -427,21 +522,31 @@ class ConfirmOrderView(LoginRequiredMixin, TemplateView):
             order = Orders.objects.insert_cart(cart, useraddresses, actual_total_price)
             OrderItems.objects.insert_cart_items(cart, order)
             PlanName.objects.reduce_stock(cart)
+            
+            logger.info(f"Order created successfully: {order.id}")
+            request.session['completed_order_id'] = order.id
             cart.delete()
+            logger.info("Redirecting to order success page")
             return redirect('hotel:order_success')
         
-        except ValueError:
-            kupon_amount = 0
-            messages.error(request, 'クーポン額が無効です')
         
-        except Http404 as e:
-            messages.error(request, str(e))
+            # cart.delete()            
+            # return response
+        
+        # except ValueError:
+        #     kupon_amount = 0
+        #     messages.error(request, 'クーポン額が無効です')
+        
+        # except Http404 as e:
+        #     messages.error(request, str(e))
         
         except Exception as e:
+            logger.error(f"Error during order processing: {str(e)}")
             messages.error(request, f'予約注文処理で予期せぬエラー発生しました: {str(e)}')
             
-        return redirect('hotel:confirm_order')
+            # return redirect('hotel:confirm_order')
     
+            return render(request, 'hotel/order_success.html', {'order': order})
     
                     
         # if (not useraddresses) or (not cart) or (not total_price):
@@ -458,6 +563,32 @@ class ConfirmOrderView(LoginRequiredMixin, TemplateView):
 
 class OrderSuccessView(LoginRequiredMixin, TemplateView):
     
-    template_name = os.path.join('hotel/order_success.html')
+    template_name = os.path.join('hotel', 'order_success.html')
     
+    def get(self, request, *args, **kwargs):
+        logger.info("Accessing OrderSuccessView")
+        order_id = request.session.get('completed_order_id')
+        logger.debug(f"Completed order ID from session: {order_id}")
         
+        if not order_id:
+            logger.warning("No completed order ID in session")
+            messages.error(request, '有効な注文が見つかりません')
+            return redirect('hotel:cyumon_info')
+        
+        try:
+            order = Orders.objects.get(id=order_id, user=request.user)
+            logger.info(f"Found order: {order.id}")
+            del request.session['completed_order_id']
+            # context = self.get_context_data(order=order)
+            return self.render_to_response(self.get_context_data(order=order))
+            
+        except Orders.DoesNotExist:
+            logger.error(f"Order with ID {order_id} not found for user {request.user}")
+            messages.error(request, '注文が見つかりません')
+            return redirect('hotel:cyumon_info')
+        
+        # # 清除會話中的訂單ID
+        # del request.session['completed_order_id']  
+        
+        # context = self.get_context_data(order=order)
+        # return self.render_to_response(context)

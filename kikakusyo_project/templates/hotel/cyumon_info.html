@@ -32,7 +32,7 @@
         </div>
         <div style="flex: 1;">
             <div class="order-summary">
-                <form method="post" action="{% url 'hotel:confirm_order' %}" class="kupon-form">
+                <form method="get" action="{% url 'hotel:input_useraddresses' %}" class="kupon-form">
                     {% csrf_token %}
                     <label for="kupon_amount">使用クーポン額：</label>
                     <input type="number" id="kupon_amount" name="kupon_amount" value="{{ kupon_amount }}" min="0">            

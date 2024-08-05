@@ -11,7 +11,7 @@
     <hr>
     <h3>過去に利用した予約情報</h3>
     {% for useraddress in useraddresses %}
-        <p><a href={% url 'hotel:input_useraddresses' pk=useraddress.id %}>{{ useraddress }}</a></p>
+        <p><a href={% url 'hotel:input_useraddresses_update' pk=useraddress.id %}>{{ useraddress }}</a></p>
     {% endfor %}
 </div>
 {% endblock%}
