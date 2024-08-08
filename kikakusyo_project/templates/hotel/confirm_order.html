@@ -53,7 +53,7 @@
                 <p><a href="{% url 'hotel:input_useraddresses' %}">予約情報の入力へ</a></p>
             </div>
             <div class="order-summary">
-                <form id="kuponForm" method="POST" action="{% url 'hotel:apply_kupon' %}">
+                <form id="kuponForm" method="POST" action="{% url 'hotel:apply_kupon' %}" class="text-right">
                     {% csrf_token %}
                     <div class="kupon-input">
                         <label for="kupon_amount">使用クーポン額：</label>
@@ -110,12 +110,14 @@
 
 {% block extra_css %}
 <style>
-    .kupon-input, 
-    .total-price, 
-    .submit-button {
+    .order-summary {
+        margin-top: 20px;
+    }
+    
+    .kupon-input {
         display: flex;
         justify-content: flex-end;
-        align-items: right;
+        align-items: center;
         width: 100%;
         margin-bottom: 10px;
     }
@@ -123,7 +125,11 @@
     .kupon-input input {
         width: 100px;
         margin-right: 5px;
+        margin-left: 5px;
     }
     
+    .kupon-input button {
+        margin-left: 5px;
+    }    
 </style>
 {% endblock%}
