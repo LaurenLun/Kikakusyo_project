@@ -5,6 +5,7 @@ from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError 
 import re
 from django.contrib.auth.forms import AuthenticationForm
+from django.forms import ModelForm
 
 def validate_phone_number(value):
     pattern = r'^(\d{3}-\d{4}-\d{4}|\d{11})$'
@@ -83,3 +84,47 @@ class UserLoginForm(AuthenticationForm):
     username = forms.EmailField(label='メールアドレス', max_length=150)
     password = forms.CharField(label='パスワード', widget=forms.PasswordInput())
     remember = forms.BooleanField(label='ログイン状態を保持する', required=False)
+    
+
+# class UserInfoForm(ModelForm):
+#     class Meta:
+#         model = User
+#         fields = [
+#             'last_name', 
+#             'first_name', 
+#             'zip_code', 
+#             'address', 
+#             'phone_number', 
+#             'email', 
+#             'password',
+#         ]
+    
+#     def __init__(self, last_name=None, first_name=None, zip_code=None, address=None, phone_number=None, email=None, password=None, *args, **kwargs):
+#         kwargs.setdefault('label_suffix', '')
+#         super().__init__(*args, **kwargs)
+#         # ユーザーの更新前情報をフォームに挿入
+#         if last_name:
+#             self.fields['last_name'].widget.attrs['value'] = last_name
+#         if first_name:
+#             self.fields['first_name'].widget.attrs['value'] = first_name
+#         if zip_code:
+#             self.fields['zip_code'].widget.attrs['value'] = zip_code
+#         if address:
+#             self.fields['address'].widget.attrs['value'] = address
+#         if phone_number:
+#             self.fields['phone_number'].widget.attrs['value'] = phone_number
+#         if email:
+#             self.fields['email'].widget.attrs['value'] = email
+#         if password:
+#             self.fields['password'].widget.attrs['value'] = password
+        
+        
+#     def update(self, user):
+#         user.last_name = self.cleaned_data['last_name']
+#         user.first_name = self.cleaned_data['first_name']
+#         user.zip_code = self.cleaned_data['zip_code']
+#         user.address = self.cleaned_data['address']
+#         user.phone_number = self.cleaned_data['phone_number']
+#         user.email = self.cleaned_data['email']
+#         user.password = self.cleaned_data['password']
+#         user.save()

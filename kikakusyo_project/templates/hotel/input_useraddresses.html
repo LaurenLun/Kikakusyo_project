@@ -3,10 +3,11 @@
 <div class="col-10 offset-1">
     <h2>予約情報を設定してください</h2>
     <hr>
-    <form method="POST">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <input type="submit" value="予約情報を設定する">
+    <form method="POST" action="{% url 'hotel:input_useraddresses' %}">
+        {% csrf_token %}
+        {{ form.as_p }}
+        {% comment %} <input type="submit" name="kupon_amount" value="{{ kupon_amount }}"> {% endcomment %}
+        <button type="submit">予約情報を設定する</button>
     </form>
     <hr>
     <h3>過去に利用した予約情報</h3>

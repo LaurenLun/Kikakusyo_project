@@ -1,7 +1,7 @@
 from django.urls import path
 from .views import(
     HotelListView, HotelSearchView, CyumonInfoView, PlanListView, 
-    PlanListCalendarView, add_product, CyumonInfoUpdateView, 
+    PlanListCalendarView, add_product, CyumonInfoUpdateView, apply_kupon,
     CyumonInfoDeleteView, InputUserAddressesView, ConfirmOrderView, OrderSuccessView,
 )
 # from . import views
@@ -10,7 +10,7 @@ app_name = 'hotel'
 urlpatterns = [
     path('hotel-search/', HotelSearchView.as_view(), name='hotel_search'),
     path('hotel_list/', HotelListView.as_view(), name='hotel_list'),
-    path('plan_list/<int:pk>/', PlanListView.as_view(), name='plan_list'),
+    path('plan_list/<int:hotel_id>/', PlanListView.as_view(), name='plan_list'),
     path('plan_list/<int:pk>/calendar/', PlanListCalendarView.as_view(), name='calendar'),
     path('plan_list/<int:pk>/calendar/<int:year>/<int:month>/<int:day>/', PlanListCalendarView.as_view(), name='calendar'),
     path('cyumon_info/', CyumonInfoView.as_view(), name='cyumon_info'),
@@ -22,4 +22,5 @@ urlpatterns = [
     path('input_useraddresses/<int:pk>/', InputUserAddressesView.as_view(), name='input_useraddresses_update'),
     path('confirm_order/', ConfirmOrderView.as_view(), name='confirm_order'),
     path('order_success/', OrderSuccessView.as_view(), name='order_success'),
+    path('apply_kupon/', apply_kupon, name='apply_kupon'),
 ]

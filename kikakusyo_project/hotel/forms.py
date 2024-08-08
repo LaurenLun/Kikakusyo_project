@@ -38,16 +38,20 @@ class UserAddressesInputForm(forms.ModelForm):
     zip_code = forms.CharField(label='郵便番号', max_length=8)
     address = forms.CharField(label='住所', widget=forms.TextInput(attrs={'size': '30'}))
     phone_number = forms.CharField(label='電話番号', max_length=13)
+    checkin = forms.DateField(label='チェックイン日', widget=forms.DateInput(attrs={'type': 'date'}), required=False)
+    checkout = forms.DateField(label='チェックアウト日', widget=forms.DateInput(attrs={'type': 'date'}), required=False)
     
     class Meta:
         model = UserAddresses
-        fields = ['last_name', 'first_name', 'zip_code', 'address', 'phone_number']
+        fields = ['last_name', 'first_name', 'zip_code', 'address', 'phone_number', 'checkin', 'checkout']
         labels = {
             'last_name': '名前(姓)',
             'first_name': '名前(名)',
             'zip_code': '郵便番号',
             'address': '住所',
             'phone_number': '電話番号',
+            'checkin': 'チェックイン日',
+            'checkout': 'チェックアウト日',
         }
     def __init__(self, *args, **kwargs):
         self.user = kwargs.pop('user', None)

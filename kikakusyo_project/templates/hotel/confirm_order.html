@@ -1,45 +1,129 @@
 {% extends 'base.html' %}
 {% block content %}
-<p>{{ useraddresses.last_name }}{{ useraddresses.first_name }}さん、予約情報と予約注文を確認をお願いいたします</p>
-<p>名前(姓): {{ useraddresses.last_name |default_if_none:'' }}</p>
-<p>名前(名): {{ useraddresses.first_name |default_if_none:'' }}</p>
-<p>郵便番号: {{ useraddresses.zip_code |default_if_none:'' }}</p>
-<p>住所: {{ useraddresses.address |default_if_none:'' }}</p>
-<p>電話番号: {{ useraddresses.phone_number |default_if_none:'' }}</p>
-<table class="table">
-<tbody>
-    {% for item in items %}
-        <tr>
-            <td style="width:20%; vertical-align: middle;">
-                {% if item.picture %}
-                    <img width="75px" height="75px" src="{{ item.picture.url }}">
-                {% endif %}
-            </td>
-            <td style="width:60%; vertical-align: middle;">
-                {{ item.hotel_name }} - {{ item.name }}<br>
-                人数：{{ item.people }}人<br>
-                部屋タイプ：{{ item.room_type }}<br>
-                料金：{{ item.price }}円
-            </td>
-            <td style="width:20%; text-align: left; vertical-align: middle">
-                チェックイン日：{{ item.checkin }}<br>
-                チェックアウト日： {{ item.checkout }}<br>
-                プラン名：{{ item.name }}<br>
-                料金： {{ item.price }}円<br>
-                使用クーポン額： {{ item.kupon|default:"0" }}円分<br>
-                部屋数：{{ item.quantity }}部屋</td>
-        </tr>
-    {% endfor %}
-</tbody>
-</table>
-<hr>
-<p><a href="{% url 'hotel:cyumon_info' %}">予約注文へ</a></p>
-<p><a href="{% url 'hotel:input_useraddresses' %}">予約情報の入力へ</a></p>
-<h3 class="offset-9">合計： {{ total_price|default:"0" }}円</h3>
-<br>
-<form method="POST" action="{% url 'hotel:confirm_order' %}" class="offset-10">
-    {% csrf_token %}
-    <input type="hidden" name="kupon_amount" value="{{ kupon_amount }}">
-    <button type="submit" class="btn btn-primary">予約注文を確定する</button>
-</form>    
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-3"></div>
+        <div class="col-md-6">
+            <div class="text-left">
+            {% if useraddresses %}
+                <p>{{ useraddresses.last_name }} {{ useraddresses.first_name }}さん、予約情報と予約注文を確認をお願いいたします</p>
+                {% comment %} <p>Debug: Address ID: {{ useraddresses.id }}</p> {% endcomment %}
+                <p>名前(姓): {{ useraddresses.last_name|default_if_none:'' }}</p>
+                <p>名前(名): {{ useraddresses.first_name |default_if_none:'' }}</p>
+                <p>郵便番号: {{ useraddresses.zip_code |default_if_none:'' }}</p>
+                <p>住所: {{ useraddresses.address |default_if_none:'' }}</p>
+                <p>電話番号: {{ useraddresses.phone_number |default_if_none:'' }}</p>
+                <p>チェックイン日： {{ useraddresses.checkin|date:"Y-m-d" }}</p>
+                <p>チェックアウト日： {{ useraddresses.checkout|date:"Y-m-d" }}</p>
+            {% else %}
+                <p>No address information available</p>
+            {% endif %}
+            </div>
+            <table class="table">
+                <tbody>
+                    {% for item in items %}
+                        <tr>
+                            <td style="width:20%; vertical-align: middle;">
+                                {% if item.picture %}
+                                    <img width="200px" height="200px" src="{{ item.picture.url }}">
+                                {% endif %}
+                            </td>
+                            <td style="width:80%; vertical-align: middle;">
+                                {{ item.hotel_name }} - {{ item.name }}<br>
+                                人数：{{ item.people }}人<br>
+                                部屋タイプ：{{ item.room_type }}<br>
+                                料金：{{ item.price }}円
+                            </td>
+                            <td style="white-space: nowrap;">
+                                {% comment %} チェックイン日：{{ item.checkin }}<br>
+                                チェックアウト日： {{ item.checkout }}<br> {% endcomment %}
+                                プラン名：{{ item.name }}<br>
+                                料金： {{ item.price }}円<br>
+                                {% comment %} 使用クーポン額： {{ item.kupon|default:"0" }}円分<br> {% endcomment %}
+                                {% comment %} 使用クーポン額： {{ kupon_amount }}円分<br> {% endcomment %}
+                                部屋数：{{ item.quantity }}部屋
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <hr>
+            <div class="text-left">
+                <p><a href="{% url 'hotel:cyumon_info' %}">予約注文へ</a></p>
+                <p><a href="{% url 'hotel:input_useraddresses' %}">予約情報の入力へ</a></p>
+            </div>
+            <div class="order-summary">
+                <form id="kuponForm" method="POST" action="{% url 'hotel:apply_kupon' %}">
+                    {% csrf_token %}
+                    <div class="kupon-input">
+                        <label for="kupon_amount">使用クーポン額：</label>
+                        <input type="number" id="kupon_amount" name="kupon_amount" value="{{ kupon_amount|default:0 }}" min="0">            
+                        <span>円分</span>
+                        <button type="submit" class="btn btn-secondary">適用</button>
+                    </div>
+                </form>
+                <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+                <script>
+                $(document).ready(function() {
+                    $('#kuponForm').on('submit', function(e) {
+                        e.preventDefault();
+                        $.ajax({
+                            url: $(this).attr('action'),
+                            type: 'POST',
+                            data: $(this).serialize(),
+                            dataType: 'json',
+                            headers: {
+                                "X-Requested-With": "XMLHttpRequest",
+                            },
+                            success: function(data) {
+                                $('#total_price').text(data.total_price);
+                                $('#discounted_price').text(data.discounted_price);
+                                $('#kupon_amount').val(data.kupon_amount);
+                                $('.btn-primary').attr('href', "{% url 'hotel:input_useraddresses' %}?kupon_amount=" + data.kupon_amount);
+                            },
+                            
+                            error: function(jqXHR, textStatus, errorThrown) {
+                                console.error("AJAX エラー:", textStatus, errorThrown);
+                                alert("クーポンの適用に失敗しました。もう一度お試しください。");
+                            }
+                        }); 
+                    }); 
+                });     
+                </script>
+            </div>
+            {% comment %} <h3 class="text-right">使用クーポン額：{{ kupon_amount }}円</h3> {% endcomment %}
+            {% comment %} <h3 class="text-right">合計： {{ total_price|floatformat:0 }}円</h3> {% endcomment %}
+            <h3 class="text-right">合計： <span id="total_price">{{ total_price }}</span>円</h3>
+            {% comment %} <h3 class="text-right">クーポン適用後合計： {{ discounted_price|floatformat:0 }}円</h3> {% endcomment %}
+            <h3 class="text-right">クーポン適用後： <span id="discounted_price">{{ discounted_price }}</span>円</h3>
+            <br>
+            <form method="POST" action="{% url 'hotel:confirm_order' %}" class="text-right">
+                {% csrf_token %}
+                <input type="hidden" name="kupon_amount" value="{{ kupon_amount }}">
+                <button type="submit" class="btn btn-primary">予約注文を確定する</button>
+            </form>  
+        </div>
+        <div class="col-md-3"></div>
+    </div>
+</div>  
+{% endblock%}
+
+{% block extra_css %}
+<style>
+    .kupon-input, 
+    .total-price, 
+    .submit-button {
+        display: flex;
+        justify-content: flex-end;
+        align-items: right;
+        width: 100%;
+        margin-bottom: 10px;
+    }
+    
+    .kupon-input input {
+        width: 100px;
+        margin-right: 5px;
+    }
+    
+</style>
 {% endblock%}

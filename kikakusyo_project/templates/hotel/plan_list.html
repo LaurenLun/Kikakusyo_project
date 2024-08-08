@@ -1,11 +1,12 @@
 {% extends 'base.html' %}
+{% load custom_filters %}
 {% block content %}
 <div class="col-10 offset-1">
     <div class="container">
         <div class="row">
             <div class="col-12">
                 <h1>{{ hotel.name }}のプラン一覧表</h1>
-                <form method="get" action="{% url 'hotel:plan_list' pk=hotel.id %}">
+                <form method="get" action="{% url 'hotel:plan_list' hotel_id=hotel.id  %}">
                     {% csrf_token %}
                     <p>検索したい部屋タイプ: 
                         <select name="room_type"> 
@@ -20,8 +21,8 @@
                         昇順<input type="radio" name="order_by_price" value="1" {% if ascending %}checked{% endif %}>
                         降順<input type="radio" name="order_by_price" value="2" {% if descending %}checked{% endif %}>
                     </p>
-                    <p>チェックイン日： <input type="date" name="checkin" value="{{ checkin_date }}"></p>
-                    <p>チェックアウト日： <input type="date" name="checkout" value="{{ checkout_date }}"></p>
+                    {% comment %} <p>チェックイン日： <input type="date" name="checkin" value="{{ checkin_date }}"></p>
+                    <p>チェックアウト日： <input type="date" name="checkout" value="{{ checkout_date }}"></p> {% endcomment %}
                     <p><input type="submit" value="実行する"/></p>
                 </form>
             </div>
@@ -39,12 +40,206 @@
                         </div>
                         <div class="plan-details p-3 border">
                             <ul>
-                                {% comment %} <li>チェックイン日： {{ plan.checkin|date:"Y-m-d" }}</li>
-                                <li>チェックアウト日： {{ plan.checkout|date:"Y-m-d" }}</li> {% endcomment %}
                                 <li>プラン名：{{ plan.name }}</li>
                                 <li>料金：{{ plan.price }}円</li>
                                 <li>残部屋数：{{ plan.stock }}部屋</li>
+                                {% comment %} <a href="{% url 'hotel:plan_list' hotel_id=hotel.id %}">Plan Details</a> {% endcomment %}
                                 {% if plan.stock %}
+                                    
+                                    {% comment %}
+                                    <p>is_addedList_ForHtml{{ plan.id }} : {{is_added_test1}}</p>
+                                    <p>is_addedList_ForHtml{{ plan.id }} : {{is_added_test2}}</p>
+                                    <p>is_addedList_ForHtml{{ plan.id }} : {{is_added_test3}}</p>
+                                    <p>is_addedList_ForHtml{{ plan.id }} : {{is_added_test4}}</p>
+                                    <p>is_addedList_ForHtml{{ plan.id }} : {{is_added_test5}}</p>
+                                    <p>is_addedList_ForHtml{{ plan.id }} : {{is_added_test6}}</p>
+                                    <p>is_addedList_ForHtml{{ plan.id }} : {{is_added_test7}}</p>
+                                    <p>is_addedList_ForHtml{{ plan.id }} : {{is_added_test8}}</p>
+                                    <p>is_addedList_ForHtml{{ plan.id }} : {{is_added_test9}}</p>
+                                    <p>is_addedList_ForHtml{{ plan.id }} : {{is_added_test10}}</p>
+                                    <p>is_addedList_ForHtml{{ plan.id }} : {{is_added_test11}}</p>
+                                    <p>is_addedList_ForHtml{{ plan.id }} : {{is_added_test12}}</p>
+                                    <p>is_addedList_ForHtml{{ plan.id }} : {{is_added_test13}}</p>
+                                    <p>is_addedList_ForHtml{{ plan.id }} : {{is_added_test14}}</p>
+                                    <p>is_addedList_ForHtml{{ plan.id }} : {{is_added_test15}}</p>
+                                    <p>is_addedList_ForHtml{{ plan.id }} : {{is_added_test16}}</p>
+                                    {% endcomment %}
+
+
+                                    {% if plan.id == 1 %}
+                                        {% if is_added_test1 %}
+                                            <p class="btn btn-danger">予約注文に追加済みです</p>
+                                        {% else %}
+                                            <li>数量：
+                                                <input type="number" id="quantity_{{ plan.id }}" name="quantity" min="1" max="{{ plan.stock }}"><br>
+                                                <button id="add_product_{{ plan.id }}" type="button" class="btn btn-primary add-to-cart">予約注文に追加</button>
+                                            </li>
+                                        {% endif %}
+                                    {% elif plan.id == 2 %}
+                                        {% if is_added_test2 %}
+                                            <p class="btn btn-danger">予約注文に追加済みです</p>
+                                        {% else %}
+                                            <li>数量：
+                                                <input type="number" id="quantity_{{ plan.id }}" name="quantity" min="1" max="{{ plan.stock }}"><br>
+                                                <button id="add_product_{{ plan.id }}" type="button" class="btn btn-primary add-to-cart">予約注文に追加</button>
+                                            </li>
+                                        {% endif %}
+
+                                    {% elif plan.id == 3 %}
+                                        {% if is_added_test3 %}
+                                            <p class="btn btn-danger">予約注文に追加済みです</p>
+                                        {% else %}
+                                            <li>数量：
+                                                <input type="number" id="quantity_{{ plan.id }}" name="quantity" min="1" max="{{ plan.stock }}"><br>
+                                                <button id="add_product_{{ plan.id }}" type="button" class="btn btn-primary add-to-cart">予約注文に追加</button>
+                                            </li>
+                                        {% endif %}
+
+                                    {% elif plan.id == 4 %}
+                                        {% if is_added_test4 %}
+                                            <p class="btn btn-danger">予約注文に追加済みです</p>
+                                        {% else %}
+                                            <li>数量：
+                                                <input type="number" id="quantity_{{ plan.id }}" name="quantity" min="1" max="{{ plan.stock }}"><br>
+                                                <button id="add_product_{{ plan.id }}" type="button" class="btn btn-primary add-to-cart">予約注文に追加</button>
+                                            </li>
+                                        {% endif %}
+
+                                    {% elif plan.id == 5 %}
+                                        {% if is_added_test5 %}
+                                            <p class="btn btn-danger">予約注文に追加済みです</p>
+                                        {% else %}
+                                            <li>数量：
+                                                <input type="number" id="quantity_{{ plan.id }}" name="quantity" min="1" max="{{ plan.stock }}"><br>
+                                                <button id="add_product_{{ plan.id }}" type="button" class="btn btn-primary add-to-cart">予約注文に追加</button>
+                                            </li>
+                                        {% endif %}
+
+                                    {% elif plan.id == 6 %}
+                                        {% if is_added_test6 %}
+                                            <p class="btn btn-danger">予約注文に追加済みです</p>
+                                        {% else %}
+                                            <li>数量：
+                                                <input type="number" id="quantity_{{ plan.id }}" name="quantity" min="1" max="{{ plan.stock }}"><br>
+                                                <button id="add_product_{{ plan.id }}" type="button" class="btn btn-primary add-to-cart">予約注文に追加</button>
+                                            </li>
+                                        {% endif %}
+
+                                    {% elif plan.id == 7 %}
+                                        {% if is_added_test7 %}
+                                            <p class="btn btn-danger">予約注文に追加済みです</p>
+                                        {% else %}
+                                            <li>数量：
+                                                <input type="number" id="quantity_{{ plan.id }}" name="quantity" min="1" max="{{ plan.stock }}"><br>
+                                                <button id="add_product_{{ plan.id }}" type="button" class="btn btn-primary add-to-cart">予約注文に追加</button>
+                                            </li>
+                                        {% endif %}
+
+                                    {% elif plan.id == 8 %}
+                                        {% if is_added_test8 %}
+                                            <p class="btn btn-danger">予約注文に追加済みです</p>
+                                        {% else %}
+                                            <li>数量：
+                                                <input type="number" id="quantity_{{ plan.id }}" name="quantity" min="1" max="{{ plan.stock }}"><br>
+                                                <button id="add_product_{{ plan.id }}" type="button" class="btn btn-primary add-to-cart">予約注文に追加</button>
+                                            </li>
+                                        {% endif %}
+
+                                    {% elif plan.id == 9 %}
+                                        {% if is_added_test9 %}
+                                            <p class="btn btn-danger">予約注文に追加済みです</p>
+                                        {% else %}
+                                            <li>数量：
+                                                <input type="number" id="quantity_{{ plan.id }}" name="quantity" min="1" max="{{ plan.stock }}"><br>
+                                                <button id="add_product_{{ plan.id }}" type="button" class="btn btn-primary add-to-cart">予約注文に追加</button>
+                                            </li>
+                                        {% endif %}
+
+                                    {% elif plan.id == 10 %}
+                                        {% if is_added_test10 %}
+                                            <p class="btn btn-danger">予約注文に追加済みです</p>
+                                        {% else %}
+                                            <li>数量：
+                                                <input type="number" id="quantity_{{ plan.id }}" name="quantity" min="1" max="{{ plan.stock }}"><br>
+                                                <button id="add_product_{{ plan.id }}" type="button" class="btn btn-primary add-to-cart">予約注文に追加</button>
+                                            </li>
+                                        {% endif %}
+
+                                    {% elif plan.id == 11 %}
+                                        {% if is_added_test11 %}
+                                            <p class="btn btn-danger">予約注文に追加済みです</p>
+                                        {% else %}
+                                            <li>数量：
+                                                <input type="number" id="quantity_{{ plan.id }}" name="quantity" min="1" max="{{ plan.stock }}"><br>
+                                                <button id="add_product_{{ plan.id }}" type="button" class="btn btn-primary add-to-cart">予約注文に追加</button>
+                                            </li>
+                                        {% endif %}
+
+                                    {% elif plan.id == 12 %}
+                                        {% if is_added_test12 %}
+                                            <p class="btn btn-danger">予約注文に追加済みです</p>
+                                        {% else %}
+                                            <li>数量：
+                                                <input type="number" id="quantity_{{ plan.id }}" name="quantity" min="1" max="{{ plan.stock }}"><br>
+                                                <button id="add_product_{{ plan.id }}" type="button" class="btn btn-primary add-to-cart">予約注文に追加</button>
+                                            </li>
+                                        {% endif %}
+
+                                    {% elif plan.id == 13 %}
+                                        {% if is_added_test13 %}
+                                            <p class="btn btn-danger">予約注文に追加済みです</p>
+                                        {% else %}
+                                            <li>数量：
+                                                <input type="number" id="quantity_{{ plan.id }}" name="quantity" min="1" max="{{ plan.stock }}"><br>
+                                                <button id="add_product_{{ plan.id }}" type="button" class="btn btn-primary add-to-cart">予約注文に追加</button>
+                                            </li>
+                                        {% endif %}
+
+                                    {% elif plan.id == 14 %}
+                                        {% if is_added_test14 %}
+                                            <p class="btn btn-danger">予約注文に追加済みです</p>
+                                        {% else %}
+                                            <li>数量：
+                                                <input type="number" id="quantity_{{ plan.id }}" name="quantity" min="1" max="{{ plan.stock }}"><br>
+                                                <button id="add_product_{{ plan.id }}" type="button" class="btn btn-primary add-to-cart">予約注文に追加</button>
+                                            </li>
+                                        {% endif %}
+
+                                    {% elif plan.id == 15 %}
+                                        {% if is_added_test15 %}
+                                            <p class="btn btn-danger">予約注文に追加済みです</p>
+                                        {% else %}
+                                            <li>数量：
+                                                <input type="number" id="quantity_{{ plan.id }}" name="quantity" min="1" max="{{ plan.stock }}"><br>
+                                                <button id="add_product_{{ plan.id }}" type="button" class="btn btn-primary add-to-cart">予約注文に追加</button>
+                                            </li>
+                                        {% endif %}
+
+                                    {% elif plan.id == 16 %}
+                                        {% if is_added_test16 %}
+                                            <p class="btn btn-danger">予約注文に追加済みです</p>
+                                        {% else %}
+                                            <li>数量：
+                                                <input type="number" id="quantity_{{ plan.id }}" name="quantity" min="1" max="{{ plan.stock }}"><br>
+                                                <button id="add_product_{{ plan.id }}" type="button" class="btn btn-primary add-to-cart">予約注文に追加</button>
+                                            </li>
+                                        {% endif %}
+
+                                    {% endif %}
+                                
+                                    {% comment %} 51~60保留 {% endcomment %}
+                                   {% comment %} {% for id in plan.id %}
+                                        <p>is_addedList_ForHtml[{{ id }}] : {{ is_addedList_ForHtml|get_item:id }}</p>
+                                        {% with is_added=is_addedList_ForHtml|get_item:id %}
+                                            {% if is_added %}
+                                                <p>pass</p>
+                                            {% else %}
+                                                <p>fail</p>
+                                            {% endif %}
+                                        {% endwith %}
+                                    {% endfor %} {% endcomment %}
+                                  
+                                    {% comment %} <p>cart_product_id : {{cart_product_id}}</p> 
                                     {% if is_added %}
                                         <p class="btn btn-danger">予約注文に追加済みです</p>
                                     {% else %}
@@ -53,12 +248,20 @@
                                             <button id="add_product_{{ plan.id }}" type="button" class="btn btn-primary add-to-cart">予約注文に追加</button>
                                         </li>
                                     {% endif %}
+                                    {% endcomment %}
                                 {% endif %}
                             </ul>
                         </div>
-                        <script>
-                            $(document).ready(function(){
-                                var requestInProgress = false;
+                        <div class="plan-images">
+                            {% for picture in plan.pictures.all %}
+                                <img width="300px" height="300px" src="{{ picture.image.url }}" alt="{{ plan.name }}">
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endfor %}
+                    <script>
+                        $(document).ready(function(){
+                            var requestInProgress = false;
 
                                 $('.add-to-cart').click(function(e){
                                     e.preventDefault();
@@ -82,7 +285,9 @@
                                         },
                                         success: function(response){
                                             alert(response.message);
+
                                             button.text('予約注文に追加済み');
+                                        
                                         },
                                         error: function(xhr){
                                             if (xhr.status === 401) {
@@ -99,14 +304,7 @@
                                     });
                                 });
                             });
-                        </script>
-                        <div class="plan-images">
-                            {% for picture in plan.pictures.all %}
-                                <img width="300px" height="300px" src="{{ picture.image.url }}" alt="{{ plan.name }}">
-                            {% endfor %}
-                        </div>
-                    </div>
-                {% endfor %}
+                    </script>
             {% endif %}
             </div>
         </div>
@@ -116,39 +314,41 @@
 
 {% block extra_css %}
 <style>
-    .plan-container {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        margin-bottom: 20px;
-        width: 100%;
-    }
-    .plan-info, .plan-details {
-        border: 1px solid #ccc;
-        padding: 20px;
-        margin-right: 20px;
-        flex: 1;
-        min-width: 200px;
-        display: flex;
-        flex-direction: column;
-    }
-    .plan-images {
-        flex-shrink: 0;
-    }
-    .plan-info h1, .plan-info h6, .plan-details ul {
-        margin: 0;
-        padding: 0;
-    } 
-    .plan-details ul {
-        list-style: none;
-        padding-left: 0;
-    }
-    .plan-info, .plan-details, .plan-images {
-        max-width: 300px;
-    }
-    .plan-info h1, .plan-info h6 {
-        text-align: center;
-    }
+.plan-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0px;
+    width: 100%;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+}
+.plan-info, .plan-details {
+    border: 1px solid #ccc;
+    padding: 20px;
+    margin-right: 0px;
+    flex: 1;
+    min-width: 200px;
+    display: flex;
+    flex-direction: column;
+}
+.plan-images {
+    flex-shrink: 0;
+}
+.plan-info h1, .plan-info h6, .plan-details ul {
+    margin: 0;
+    padding: 0;
+} 
+.plan-details ul {
+    list-style: none;
+    padding-left: 0;
+}
+.plan-info, .plan-details, .plan-images {
+    max-width: 300px;
+}
+.plan-info h1, .plan-info h6 {
+    text-align: center;
+}
 </style>
 {% endblock %}
 

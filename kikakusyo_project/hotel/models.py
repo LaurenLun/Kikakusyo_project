@@ -40,8 +40,10 @@ class PlanName(models.Model):
     checkin = models.DateField(null=True, blank=True)
     checkout = models.DateField(null=True, blank=True)
     kupon = models.IntegerField(default=0)
+    # id = models.IntegerField(default=0)
     # picture = models.FileField(upload_to='hotel_pictures/', null=True)
     objects = PlanNameManager()
+    
 
     
     class Meta:
@@ -139,6 +141,7 @@ class CartItems(models.Model):
     cart = models.ForeignKey(
         Carts, on_delete=models.CASCADE
     )
+    kupon_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     objects = CartItemsManager()
     
     class Meta:
@@ -164,19 +167,28 @@ class UserAddresses(models.Model):
     zip_code = models.CharField(max_length=8)
     address = models.CharField(max_length=30)
     phone_number = models.CharField(max_length=13)
+    checkin = models.DateField(null=True, blank=True)
+    checkout = models.DateField(null=True, blank=True)
     user = models.ForeignKey(
         Users,
         on_delete = models.CASCADE, 
     )
     
+    
     class Meta:
         db_table = 'useraddresses'
         unique_together = [
-            ['last_name', 'first_name', 'zip_code', 'address', 'phone_number', 'user']
+            ['last_name', 'first_name', 'zip_code', 'address', 'phone_number', 'user', 'checkin', 'checkout']
         ]
         
+    def get_context_data(self):
+        context = {
+            'checkin': self.product.checkin,
+            'checkout': self.product.checkout,
+        }
+        
     def __str__(self):
-        return f'{self.last_name} {self.first_name} {self.zip_code} {self.address} { self.phone_number}'
+        return f'{self.last_name} {self.first_name} {self.zip_code} {self.address} {self.phone_number} {self.checkin} {self.checkout}'
 
 
 class OrdersManager(models.Manager):

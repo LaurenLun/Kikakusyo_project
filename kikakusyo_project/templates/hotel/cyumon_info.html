@@ -2,9 +2,9 @@
 {% block content %}
 <div class="col-10 offset-1">
     {% if items %}
-        <div style="display: flex; flex-direction: column;">
+        <div class="items-container">
             {% for item in items %}
-                <div style="border: 1px solid black; margin-bottom: 20px; padding: 10px;">
+                <div style="border: 1px solid black; margin-bottom: 20px; padding: 10px; width: 80%;">
                     <div style="display: flex;">
                         <div style="flex: 1; text-align: center;">
                             {% if item.picture %}
@@ -14,8 +14,8 @@
                         <div style="flex: 3;">
                             <h6>ホテル名： {{ item.hotel_name }}</h6>
                             <h6>プラン名： {{ item.name }}</h6>
-                            <h6>チェックイン日： {{ item.checkin }}</h6>
-                            <h6>チェックアウト日： {{ item.checkout }}</h6>
+                            {% comment %} <h6>チェックイン日： {{ item.checkin }}</h6>
+                            <h6>チェックアウト日： {{ item.checkout }}</h6> {% endcomment %}
                             <h6>料金： {{ item.price }}円</h6>
                             <h6>数量： {{ item.quantity }}個</h6>
                             {% if not item.in_stock %}
@@ -29,17 +29,57 @@
                     </div>
                 </div>
             {% endfor %}
-        </div>
-        <div style="flex: 1;">
             <div class="order-summary">
-                <form method="get" action="{% url 'hotel:input_useraddresses' %}" class="kupon-form">
+                <form id="kuponForm" method="POST" action="{% url 'hotel:apply_kupon' %}">
                     {% csrf_token %}
-                    <label for="kupon_amount">使用クーポン額：</label>
-                    <input type="number" id="kupon_amount" name="kupon_amount" value="{{ kupon_amount }}" min="0">            
-                    <span>円分</span>
-                    <p>合計： {{ total_price }}円</p>
-                    <button type="submit" class="btn btn-primary" href="{% url 'hotel:input_useraddresses' %}?kupon_amount={{ kupon_amount }}" class="btn btn-primary">予約情報を入力する</button>
+                    {% comment %} <div class="right-aligned-content"> {% endcomment %}
+                    {% comment %} <div class="kupon-input">
+                        <label for="kupon_amount">使用クーポン額：</label>
+                        <input type="number" id="kupon_amount" name="kupon_amount" value="{{ kupon_amount|default:0 }}" min="0">            
+                        <span>円分</span>
+                        <button type="submit" class="btn btn-secondary">適用</button>
+                     </div>
+                     
                 </form>
+                <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+                <script>
+                $(document).ready(function() {
+                    $('#kuponForm').on('submit', function(e) {
+                        e.preventDefault();
+                        $.ajax({
+                            url: $(this).attr('action'),
+                            type: 'POST',
+                            data: $(this).serialize(),
+                            dataType: 'json',
+                            headers: {
+                                "X-Requested-With": "XMLHttpRequest",
+                            },
+                            success: function(data) {
+                                $('#total_price').text(data.total_price);
+                                $('#discounted_price').text(data.discounted_price);
+                                $('#kupon_amount').val(data.kupon_amount);
+                                $('.btn-primary').attr('href', "{% url 'hotel:input_useraddresses' %}?kupon_amount=" + data.kupon_amount);
+
+                                alert(data.kupon_amount);
+                                alert(kupon_amount);
+                            },
+                            
+                            error: function(jqXHR, textStatus, errorThrown) {
+                                console.error("AJAX エラー:", textStatus, errorThrown);
+                                alert("クーポンの適用に失敗しました。もう一度お試しください。");
+                            }
+                        }); 
+                    }); 
+                });     
+                </script> {% endcomment %}
+                <div class="total-price">
+                    <p>合計： <span id="total_price">{{ total_price }}</span>円</p>
+                    {% comment %} <p>クーポン適用後： <span id="discounted_price">{{ discounted_price }}</span>円</p> {% endcomment %}
+                </div>
+                <div class="submit-button">
+                    {% comment %} <button type="submit" class="btn btn-primary" href="{% url 'hotel:input_useraddresses' %}?kupon_amount={{ kupon_amount }}" class="btn btn-primary">予約情報を入力する</button> {% endcomment %}
+                    <a href="{% url 'hotel:input_useraddresses' %}?kupon_amount={{ kupon_amount }}" class="btn btn-primary">予約情報を入力する</a>
+                </div>
             </div>
         </div>
     {% else %}
@@ -50,55 +90,63 @@
 
 {% block extra_css %}
 <style>
-.order-info-container {
-    display: grid;
-    grid-template-columns: repeat(1, 1fr);
-    gap: 1rem;
-}
-
-.order-info {
-    display: flex;
-    justify-content: space-between;
-    border: 1px solid #ccc;
-    padding: 1rem;
-    border-radius: 8px;
-}
-
-.plan-info, .check-info {
-    flex: 1;
-    padding: 0 1rem;
-}
-
-.plan-info h2 {
-    margin-bottom: 0.5rem;
-}
-
-.check-info p {
-    margin: 0.5rem 0;
-}
-
-.total-price {
-    text-align: right;
-    margin-top: 1rem;
-}
-
-.order-summary {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    margin-top: 20px;
-}
-
-.kupon-form {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-.kupon-form label, .kupon-form input, .kupon-form span {
-    margin-bottom: 10px;
-}
-
-
+    .items-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+    }
+    .order-summary {
+        align-self: flex-end;
+    }
+    
+    .order-summary {
+        width: 100%;
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 20px;
+        max-width: 400px; 
+        margin-left: auto;
+    }
+    
+    
+    .kupon-form {
+        width: auto;
+        width: 300px;
+    }
+    
+    .right-aligned-content {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        width: 100%;
+    }
+    
+    .kupon-input, 
+    .total-price, 
+    .submit-button {
+        display: flex;
+        justify-content: flex-end;
+        align-items: right;
+        width: 100%;
+        margin-bottom: 10px;
+    }
+    
+    {% comment %} .kupon-input label {
+        margin-right: 10px;
+    } {% endcomment %}
+    
+    .kupon-input input {
+        width: 100px;
+        margin-right: 5px;
+    }
+    
+    .total-price p {
+        margin: 0;
+    }
+    
+     .btn-primary {
+        width: auto;
+     }
 </style>
 {% endblock %}

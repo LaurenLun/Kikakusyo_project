@@ -19,7 +19,7 @@
                 {% if hotels %}
                     {% for hotel in hotels %}
                         <tr>
-                            <td class="align-middle"><a href="{% url 'hotel:plan_list' pk=hotel.id %}">{{ hotel.name }}</a></td>
+                            <td class="align-middle"><a href="{% url 'hotel:plan_list' hotel_id=hotel.id %}">{{ hotel.name }}</a></td>
                             <td class="align-middle">
                                 {% for picture in hotel.pictures.all %}
                                     {% if picture.image %}

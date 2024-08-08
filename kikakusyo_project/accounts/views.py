@@ -13,6 +13,8 @@ from django.core.exceptions import ValidationError
 # from django.contrib.auth.forms import UserCreationForm
 from django.contrib import messages
 from django.contrib.auth.models import User
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.urls import reverse_lazy
 
 # Create your views here.
 
@@ -83,10 +85,26 @@ class UserLogoutView(View):
         logout(request)
         return redirect('accounts:us_login')
 
+# class UserInfoView(LoginRequiredMixin, FormView):
+#     template_name = 'us_info.html'
+#     form_class = UserInfoForm
+#     success_url = reverse_lazy('accounts:us_info.html')
+    
+#     def form_valid(self, form):
+#         form.update(user=self.request.user)
+#         messages.success(self.request, "ユーザー情報を更新しました")
+#         return super().form_valid(form)
 
-# class HotelResearchView(CreateView):
-#     template_name = 'hotel_search.html'
-
-# class CyumonInfoView(CreateView):
-#     template_name = 'cyumon_info.html'
-
+#     def get_form_kwargs(self):
+#         kwargs = super().get_form_kwargs()
+#         # 更新前のユーザー情報をkwargsとして渡す
+#         kwargs.update({
+#             'last_name' : self.request.user.last_name,
+#             'first_name' : self.request.user.first_name,
+#             'zip_code' : self.request.user.zip_code,
+#             'address' : self.request.user.address,
+#             'phone_number' : self.request.user.phone_number,
+#             'email' : self.request.user.email,
+#             'password' : self.request.user.password,
+#         })
+#         return kwargs
