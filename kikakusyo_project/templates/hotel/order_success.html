@@ -1,4 +1,8 @@
 {% extends 'base.html' %}
 {% block content %}
-<h2>予約注文を受け付けました！</h2>
+<div class="container">
+    <h2>予約注文を受け付けました！</h2>
+    <p>ご予約ありがとうございます。予約番号は {{ order.id }} です。</p>
+    <a href="{% url 'hotel:order_success_list' %}" class="btn btn-primary">予約確定一覧を見る</a>
+</div>
 {% endblock %}

@@ -40,7 +40,7 @@ class PlanName(models.Model):
     checkin = models.DateField(null=True, blank=True)
     checkout = models.DateField(null=True, blank=True)
     kupon = models.IntegerField(default=0)
-    # id = models.IntegerField(default=0)
+    plan_id = models.IntegerField(default=0)
     # picture = models.FileField(upload_to='hotel_pictures/', null=True)
     objects = PlanNameManager()
     
@@ -120,12 +120,14 @@ class Carts(models.Model):
         return self.user_id
         
 class CartItemsManager(models.Manager):
-    def add_or_update_item(self, product_id, quantity, cart):
+    def add_or_update_item(self, product_id, quantity, cart, checkin, checkout):
         cart_item, created = self.get_or_create(product_id=product_id, cart=cart)
         if not created:
             cart_item.quantity += quantity
         else:
             cart_item.quantity = quantity
+        cart_item.checkin = checkin
+        cart_item.checkout = checkout 
         cart_item.save()
         return cart_item
        
@@ -142,6 +144,8 @@ class CartItems(models.Model):
         Carts, on_delete=models.CASCADE
     )
     kupon_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    checkin = models.DateField(null=True, blank=True)
+    checkout = models.DateField(null=True, blank=True)
     objects = CartItemsManager()
     
     class Meta:
@@ -149,11 +153,11 @@ class CartItems(models.Model):
         unique_together = ('product', 'cart')
         
     def get_context_data(self):
-        context = {
-            'checkin': self.product.checkin,
-            'checkout': self.product.checkout,
+        return {
+            'checkin': self.checkin,
+            'checkout': self.checkout,
         }
-        return context
+        # return context
 
 class PlanListCalendar(models.Model):
     plans = models.ForeignKey(PlanName, on_delete=models.CASCADE)
@@ -204,22 +208,30 @@ class OrdersManager(models.Manager):
 
 class Orders(models.Model):
     total_price = models.PositiveIntegerField()
+    created_at = models.DateTimeField(default=timezone.now)
     address = models.ForeignKey(
         UserAddresses,
         on_delete=models.SET_NULL,
         blank=True,
         null=True,
+        related_name='orders'
     )
     user = models.ForeignKey(
         Users,
         on_delete=models.SET_NULL,
         blank=True,
         null=True,
+        related_name='orders'
     )
+    kupon_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    
     objects = OrdersManager()
     class Meta:
         db_table = 'orders'
     
+    @property
+    def actual_total_price(self):
+        return self.total_price - self.kupon_amount
 
 class OrderItemsManager(models.Manager):
     
@@ -231,6 +243,8 @@ class OrderItemsManager(models.Manager):
                 quantity = item.quantity,
                 product = item.product,
                 order = order,
+                checkin=item.checkin,  
+                checkout=item.checkout,
             )
 
 
@@ -246,6 +260,8 @@ class OrderItems(models.Model):
     order = models.ForeignKey(
         Orders, on_delete=models.CASCADE
     )
+    checkin = models.DateField(null=True, blank=True)
+    checkout = models.DateField(null=True, blank=True)
     objects = OrderItemsManager()
     
     class Meta:

@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container">
+    <h2>予約削除の確認</h2>
+    <p>以下の予約を削除してもよろしいですか？</p>
+    <p>予約番号: {{ object.id }}</p>
+    <p>ホテル名: {{ object.orderitems_set.first.product.hotel.name }}</p>
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">削除する</button>
+        <a href="{% url 'hotel:order_success_list' %}" class="btn btn-secondary">キャンセル</a>
+    </form>
+</div>
+<script>
+function confirmDelete() {
+    if (confirm('この予約情報を削除してもよろしいでしょうか？')) {
+        document.getElementById('deleteForm').submit();
+    }
+ }
+</script>
+{% endblock %}

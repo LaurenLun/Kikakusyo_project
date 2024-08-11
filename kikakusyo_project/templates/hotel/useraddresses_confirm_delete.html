@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="col-10 offset-1">
+    <h2>予約情報の削除確認</h2>
+    {% comment %} {{ if object }} {% endcomment %}
+        <div class="form-group">
+            <label>名前(姓):</label>
+            <input type="text" class="form-control" value="{{ object.last_name }}" readonly>
+        </div>
+    
+        <div class="form-group">
+            <label>名前(名):</label>
+            <input type="text" class="form-control" value="{{ object.first_name }}" readonly>
+        </div>
+        <div class="form-group">
+            <label>郵便番号:</label>
+            <input type="text" class="form-control" value="{{ object.zip_code }}" readonly>
+        </div>
+        <div class="form-group">
+            <label>住所:</label>
+            <input type="text" class="form-control" value="{{ object.address }}" readonly>
+        </div>
+        <div class="form-group">
+            <label>電話番号:</label>
+            <input type="text" class="form-control" value="{{ object.phone_number }}" readonly>
+        </div>
+        <div class="form-group">
+            <label>チェックイン日:</label>
+            <input type="date" class="form-control" value="{{ object.checkin|date:'Y-m-d' }}" readonly>
+        </div>
+        <div class="form-group">
+            <label>チェックアウト日:</label>
+            <input type="date" class="form-control" value="{{ object.checkout|date:'Y-m-d' }}" readonly>
+        </div>
+        <form method="post">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger" onclick="confirmDelete()">削除する</button>
+            <a href="{% url 'hotel:input_useraddresses' %}" class="btn btn-secondary">キャンセル</a>
+        </form>
+    {% comment %} {% endif %} {% endcomment %}
+</div>
+<script>
+function confirmDelete() {
+    if (confirm('この予約情報を削除してもよろしいでしょうか？')) {
+        document.getElementById('deleteForm').submit();
+    }
+ }
+</script>
+{% endblock %}
+   

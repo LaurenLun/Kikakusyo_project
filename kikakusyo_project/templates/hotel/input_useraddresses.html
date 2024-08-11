@@ -1,18 +1,24 @@
 {% extends 'base.html' %}
 {% block content %}
 <div class="col-10 offset-1">
-    <h2>予約情報を設定してください</h2>
+    <h2>{% if object %}編集{% else %}予約情報を設定してください{% endif %}</h2>
     <hr>
-    <form method="POST" action="{% url 'hotel:input_useraddresses' %}">
+    <form method="POST" action="{% if object %}{% url 'hotel:input_useraddresses_update' pk=object.id %}{% else %}{% url 'hotel:input_useraddresses' %}{% endif %}">
         {% csrf_token %}
         {{ form.as_p }}
         {% comment %} <input type="submit" name="kupon_amount" value="{{ kupon_amount }}"> {% endcomment %}
-        <button type="submit">予約情報を設定する</button>
+        <button type="submit" class="btn btn-primary">
+            {% if object %}更新する{% else %}予約情報を設定する{% endif %}
+        </button>
     </form>
     <hr>
     <h3>過去に利用した予約情報</h3>
     {% for useraddress in useraddresses %}
-        <p><a href={% url 'hotel:input_useraddresses_update' pk=useraddress.id %}>{{ useraddress }}</a></p>
+        <p>
+            <a href="{% url 'hotel:input_useraddresses_update' pk=useraddress.id %}">{{ useraddress }}</a>
+            {% comment %} <button onclick="confirmDelete('{% url 'hotel:delete_useraddress' pk=useraddress.id %}')" class="btn btn-danger btn-sm">削除</button> {% endcomment %}
+            <a href="{% url 'hotel:delete_useraddress' pk=useraddress.id %}" class="btn btn-danger btn-sm">削除</a>
+        </p>
     {% endfor %}
 </div>
 {% endblock%}

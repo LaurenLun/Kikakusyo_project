@@ -4,6 +4,7 @@ from django.core.exceptions import ValidationError
 import re
 from django.core.cache import cache
 from .models import CartItems, UserAddresses
+from django.utils import timezone
 
 def validate_phone_number(value):
     pattern = r'^(\d{3}-\d{4}-\d{4}|\d{11})$'
@@ -38,8 +39,8 @@ class UserAddressesInputForm(forms.ModelForm):
     zip_code = forms.CharField(label='郵便番号', max_length=8)
     address = forms.CharField(label='住所', widget=forms.TextInput(attrs={'size': '30'}))
     phone_number = forms.CharField(label='電話番号', max_length=13)
-    checkin = forms.DateField(label='チェックイン日', widget=forms.DateInput(attrs={'type': 'date'}), required=False)
-    checkout = forms.DateField(label='チェックアウト日', widget=forms.DateInput(attrs={'type': 'date'}), required=False)
+    checkin = forms.DateField(label='チェックイン日', widget=forms.DateInput(attrs={'type': 'date'}), required=True)
+    checkout = forms.DateField(label='チェックアウト日', widget=forms.DateInput(attrs={'type': 'date'}), required=True)
     
     class Meta:
         model = UserAddresses
@@ -59,6 +60,21 @@ class UserAddressesInputForm(forms.ModelForm):
         self.fields['phone_number'].validators.append(validate_phone_number)
         self.fields['zip_code'].validators.append(validate_zip_code)
 
+
+    def clean(self):
+        cleaned_data = super().clean()
+        checkin = cleaned_data.get('checkin')
+        checkout = cleaned_data.get('checkout')
+
+        if checkin and checkout:
+            if checkin < timezone.now().date():
+                raise ValidationError('チェックイン日は今日以降の日付を選択してください。')
+            
+            if checkout <= checkin:
+                raise ValidationError('チェックアウト日はチェックイン日より後の日付を選択してください。')
+
+        return cleaned_data
+    
     def save(self, commit=True):
         useraddresses = super().save(commit=False)
         useraddresses.user = self.user
@@ -81,10 +97,7 @@ class UserAddressesInputForm(forms.ModelForm):
         #     useraddresses.validate_unique()
         #     useraddresses.save()
         # except ValidationError as e:
-            
-
-
-
 
         cache.set(f'addresses_user_{self.user.id}', useraddresses)
         return useraddresses    
+    

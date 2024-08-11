@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block content %}
+<div class="container">
+    <h2>予約確定情報</h2>
+    {% if order %}
+        <div class="card mb-3">
+            <div class="card-body">
+                <h5 class="card-title">予約者情報</h5>
+                <p>名前（姓）: {{ order.address.last_name }}</p>
+                <p>名前（名）: {{ order.address.first_name }}</p>
+                <p>郵便番号: {{ order.address.zip_code }}</p>
+                <p>住所: {{ order.address.address }}</p>
+                <p>電話番号: {{ order.address.phone_number }}</p>
+                <p>注文日時: {{ order.created_at }}</p>
+            </div>
+        </div>
+        <div class="card mt-3">
+            <div class="card-body">
+                <h5 class="card-title">予約詳細</h5>
+                {% for item in order_items %}
+                    <div class="mb-3">
+                        {% comment %} <p>Product: {{ item.product }}</p> {% endcomment %}
+                        <p>ホテル名: {{ item.product.hotel.name }}</p>
+                        <p>プラン名: {{ item.product.name }}</p>
+                        <p>人数: {{ item.product.people }}</p>
+                        <p>部屋タイプ: {{ item.product.room_type }}</p>
+                        <p>チェックイン日: {{ address.checkin|date:"Y-m-d" }}</p>
+                        <p>チェックアウト日: {{ address.checkout|date:"Y-m-d" }}</p>
+                        <p>料金: {{ item.product.price|intcomma }}円</p>
+                        <p>数量: {{ item.quantity }}</p>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">料金情報</h5>
+                <p>合計金額: {{ order.total_price|intcomma }}円</p>
+                {% if order.kupon_amount %}
+                    <p>クーポン割引: {{ order.kupon_amount|intcomma }}円</p>
+                {% endif %}
+                <p>最終料金: {{ order.actual_total_price|floatformat:0|intcomma }}円</p>
+            </div>
+        </div>
+    {% endif %}
+    <a href="{% url 'hotel:order_success_list' %}" class="btn btn-primary mt-3">予約確定一覧表に戻る</a>
+</div>
+{% endblock %}

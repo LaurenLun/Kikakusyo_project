@@ -19,9 +19,10 @@
                     {% if user.is_authenticated %}
                         <div class="top-links">
                         <a class="navbar-brand" href="{% url 'accounts:us_logout' %}">ログアウト</a>
-                        {% comment %} <a class="navbar-brand" href="{% url 'accounts:us_info' %}">ユーザー情報</a> {% endcomment %}
+                        <a class="navbar-brand" href="{% url 'accounts:us_info' %}">ユーザー情報</a>
                         <a class="navbar-brand" href="{% url 'hotel:hotel_search' %}">ホテル検索</a>
                         <a class="navbar-brand" href="{% url 'hotel:cyumon_info' %}">注文情報へ</a>
+                        <a class="navbar-brand" href="{% url 'hotel:order_success_list' %}">予約確定情報へ</a>
                     {% else %}
                         <div class="top-links">
                         <a class="navbar-brand" href="{% url 'accounts:us_login' %}">ログイン</a>

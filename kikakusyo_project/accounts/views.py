@@ -3,7 +3,8 @@ from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render, redirect
 from django.views.generic import CreateView, TemplateView
 from django.views.generic.edit import FormView
-from .forms import RegistForm, UserLoginForm
+from django.views.generic import FormView
+from .forms import RegistForm, UserLoginForm, UserInfoForm
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.views import LoginView, LogoutView
 from django.views.generic.base import View
@@ -85,26 +86,27 @@ class UserLogoutView(View):
         logout(request)
         return redirect('accounts:us_login')
 
-# class UserInfoView(LoginRequiredMixin, FormView):
-#     template_name = 'us_info.html'
-#     form_class = UserInfoForm
-#     success_url = reverse_lazy('accounts:us_info.html')
+class UserInfoView(LoginRequiredMixin, FormView):
+    template_name = 'us_info.html'
+    form_class = UserInfoForm
+    success_url = reverse_lazy('accounts:us_info')
     
-#     def form_valid(self, form):
-#         form.update(user=self.request.user)
-#         messages.success(self.request, "ユーザー情報を更新しました")
-#         return super().form_valid(form)
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        # 更新前のユーザー情報をkwargsとして渡す
+        kwargs['initial'] = {
+            'last_name' : self.request.user.last_name,
+            'first_name' : self.request.user.first_name,
+            'zip_code' : self.request.user.zip_code,
+            'address' : self.request.user.address,
+            'phone_number' : self.request.user.phone_number,
+            'email' : self.request.user.email,
+        }
+        return kwargs
+    
+    def form_valid(self, form):
+        form.update(user=self.request.user)
+        messages.success(self.request, "ユーザー情報を更新しました")
+        return super().form_valid(form)
 
-#     def get_form_kwargs(self):
-#         kwargs = super().get_form_kwargs()
-#         # 更新前のユーザー情報をkwargsとして渡す
-#         kwargs.update({
-#             'last_name' : self.request.user.last_name,
-#             'first_name' : self.request.user.first_name,
-#             'zip_code' : self.request.user.zip_code,
-#             'address' : self.request.user.address,
-#             'phone_number' : self.request.user.phone_number,
-#             'email' : self.request.user.email,
-#             'password' : self.request.user.password,
-#         })
-#         return kwargs
+    

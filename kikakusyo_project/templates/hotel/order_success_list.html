@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container">
+    <h2>予約確定一覧表</h2>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>予約番号</th>
+                <th>ホテル名</th>
+                {% comment %} <th>チェックイン日</th>
+                <th>チェックアウト日</th> {% endcomment %}
+                {% comment %} <th>合計金額</th>{% endcomment %}
+                <th>詳細</th> 
+                <th>削除</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for order in orders %}
+            <tr>
+                <td>{{ order.id }}</td>
+                <td>{{ order.orderitems_set.first.product.hotel.name }}</td>
+                {% comment %} <td>{{ order.orderitems_set.first.product.checkin }}</td>
+                <td>{{ order.orderitems_set.first.product.checkout }}</td> {% endcomment %}
+                {% comment %} <td>{{ order.total_price }}円</td> {% endcomment %}
+                <td>
+                <a href="{% url 'hotel:order_success_info' pk=order.id %}" class="btn btn-primary">詳細を見る</a>
+                <a href="{% url 'hotel:delete_order' pk=order.id %}" class="btn btn-danger btn-sm">削除</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6">予約がありません。</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

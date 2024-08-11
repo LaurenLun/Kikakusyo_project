@@ -5,18 +5,18 @@
         <div class="col-md-3"></div>
         <div class="col-md-6">
             <div class="text-left">
-            {% if useraddresses %}
-                <p>{{ useraddresses.last_name }} {{ useraddresses.first_name }}さん、予約情報と予約注文を確認をお願いいたします</p>
+            {% if address %}
+                <p>{{ address.last_name }} {{ address.first_name }}さん、予約情報と予約注文を確認をお願いいたします</p>
                 {% comment %} <p>Debug: Address ID: {{ useraddresses.id }}</p> {% endcomment %}
-                <p>名前(姓): {{ useraddresses.last_name|default_if_none:'' }}</p>
-                <p>名前(名): {{ useraddresses.first_name |default_if_none:'' }}</p>
-                <p>郵便番号: {{ useraddresses.zip_code |default_if_none:'' }}</p>
-                <p>住所: {{ useraddresses.address |default_if_none:'' }}</p>
-                <p>電話番号: {{ useraddresses.phone_number |default_if_none:'' }}</p>
-                <p>チェックイン日： {{ useraddresses.checkin|date:"Y-m-d" }}</p>
-                <p>チェックアウト日： {{ useraddresses.checkout|date:"Y-m-d" }}</p>
+                <p>名前(姓): {{ address.last_name|default_if_none:'' }}</p>
+                <p>名前(名): {{ address.first_name |default_if_none:'' }}</p>
+                <p>郵便番号: {{ address.zip_code |default_if_none:'' }}</p>
+                <p>住所: {{ address.address |default_if_none:'' }}</p>
+                <p>電話番号: {{ address.phone_number |default_if_none:'' }}</p>
+                <p>チェックイン日： {{ address.checkin|date:"Y-m-d" }}</p>
+                <p>チェックアウト日： {{ address.checkout|date:"Y-m-d" }}</p>
             {% else %}
-                <p>No address information available</p>
+                <p>住所情報が見つかりません</p>
             {% endif %}
             </div>
             <table class="table">
@@ -35,13 +35,11 @@
                                 料金：{{ item.price }}円
                             </td>
                             <td style="white-space: nowrap;">
-                                {% comment %} チェックイン日：{{ item.checkin }}<br>
-                                チェックアウト日： {{ item.checkout }}<br> {% endcomment %}
                                 プラン名：{{ item.name }}<br>
                                 料金： {{ item.price }}円<br>
-                                {% comment %} 使用クーポン額： {{ item.kupon|default:"0" }}円分<br> {% endcomment %}
-                                {% comment %} 使用クーポン額： {{ kupon_amount }}円分<br> {% endcomment %}
-                                部屋数：{{ item.quantity }}部屋
+                                部屋数：{{ item.quantity }}部屋<br>
+                                泊数： {{ item.nights }}泊分<br>
+                                小計： {{ item.item_total }}円
                             </td>
                         </tr>
                     {% endfor %}

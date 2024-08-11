@@ -18,8 +18,8 @@
                         </select>
                     </p>
                     <p>値段で並び替える：
-                        昇順<input type="radio" name="order_by_price" value="1" {% if ascending %}checked{% endif %}>
-                        降順<input type="radio" name="order_by_price" value="2" {% if descending %}checked{% endif %}>
+                        昇順<input type="radio" name="order_by_price" value="1" {% if descending %}checked{% endif %}>
+                        降順<input type="radio" name="order_by_price" value="2" {% if ascending %}checked{% endif %}>
                     </p>
                     {% comment %} <p>チェックイン日： <input type="date" name="checkin" value="{{ checkin_date }}"></p>
                     <p>チェックアウト日： <input type="date" name="checkout" value="{{ checkout_date }}"></p> {% endcomment %}
@@ -33,19 +33,20 @@
                 {% for plan in plans %}
                     <div class="plan-container d-flex justify-content-between align-itmes-start mb-4">
                         <div class="plan-info p-3 border">
-                            <h1>{{ plan.name|default:"No Name" }}</h1>
-                            <h6>人数： {{ plan.people|default:"N/A" }}</h6>
-                            <h6>部屋タイプ： {{ plan.room_type|default:"N/A" }}</h6>
-                            <h6>料金： {{ plan.price|default:"N/A" }}円</h6>
+                            <h2>{{ plan.name|default:"No Name" }}</h2>
+                            <p>人数： {{ plan.people|default:"N/A" }}</p>
+                            <p>部屋タイプ： {{ plan.room_type|default:"N/A" }}</p>
+                            <p>料金： {{ plan.price|default:"N/A" }}円</p>
                         </div>
                         <div class="plan-details p-3 border">
                             <ul>
                                 <li>プラン名：{{ plan.name }}</li>
                                 <li>料金：{{ plan.price }}円</li>
                                 <li>残部屋数：{{ plan.stock }}部屋</li>
+                                {% comment %} <li> plan id: {{plan.plan_id}} </li> {% endcomment %}
                                 {% comment %} <a href="{% url 'hotel:plan_list' hotel_id=hotel.id %}">Plan Details</a> {% endcomment %}
                                 {% if plan.stock %}
-                                    
+
                                     {% comment %}
                                     <p>is_addedList_ForHtml{{ plan.id }} : {{is_added_test1}}</p>
                                     <p>is_addedList_ForHtml{{ plan.id }} : {{is_added_test2}}</p>
@@ -65,17 +66,25 @@
                                     <p>is_addedList_ForHtml{{ plan.id }} : {{is_added_test16}}</p>
                                     {% endcomment %}
 
-
-                                    {% if plan.id == 1 %}
+                                    {% comment %} 70~77 小李 {% endcomment %}
+                                    {% if plan.id in cartitems %}
+                                        <p class="btn btn-danger">予約注文に追加済みです</p>
+                                    {% else %}
+                                        <li>数量：
+                                            <input type="number" id="quantity_{{ plan.plan_id }}" name="quantity_{{ plan.plan_id }}" min="1" max="{{ plan.stock }}">
+                                            <button id="add_product_{{ plan.plan_id }}" type="button" class="btn btn-primary add-to-cart">予約注文に追加</button>
+                                        </li>
+                                    {% endif %}
+                                    {% comment %} {% if plan.plan_id == 1 %}
                                         {% if is_added_test1 %}
                                             <p class="btn btn-danger">予約注文に追加済みです</p>
                                         {% else %}
-                                            <li>数量：
+                                            {% comment %} <li>数量：
                                                 <input type="number" id="quantity_{{ plan.id }}" name="quantity" min="1" max="{{ plan.stock }}"><br>
                                                 <button id="add_product_{{ plan.id }}" type="button" class="btn btn-primary add-to-cart">予約注文に追加</button>
-                                            </li>
-                                        {% endif %}
-                                    {% elif plan.id == 2 %}
+                                            </li> 
+                                        {% endif %}{% endcomment %}
+                                    {% comment %} {% elif plan.id == 2 %}
                                         {% if is_added_test2 %}
                                             <p class="btn btn-danger">予約注文に追加済みです</p>
                                         {% else %}
@@ -84,7 +93,6 @@
                                                 <button id="add_product_{{ plan.id }}" type="button" class="btn btn-primary add-to-cart">予約注文に追加</button>
                                             </li>
                                         {% endif %}
-
                                     {% elif plan.id == 3 %}
                                         {% if is_added_test3 %}
                                             <p class="btn btn-danger">予約注文に追加済みです</p>
@@ -94,7 +102,6 @@
                                                 <button id="add_product_{{ plan.id }}" type="button" class="btn btn-primary add-to-cart">予約注文に追加</button>
                                             </li>
                                         {% endif %}
-
                                     {% elif plan.id == 4 %}
                                         {% if is_added_test4 %}
                                             <p class="btn btn-danger">予約注文に追加済みです</p>
@@ -104,7 +111,6 @@
                                                 <button id="add_product_{{ plan.id }}" type="button" class="btn btn-primary add-to-cart">予約注文に追加</button>
                                             </li>
                                         {% endif %}
-
                                     {% elif plan.id == 5 %}
                                         {% if is_added_test5 %}
                                             <p class="btn btn-danger">予約注文に追加済みです</p>
@@ -114,7 +120,6 @@
                                                 <button id="add_product_{{ plan.id }}" type="button" class="btn btn-primary add-to-cart">予約注文に追加</button>
                                             </li>
                                         {% endif %}
-
                                     {% elif plan.id == 6 %}
                                         {% if is_added_test6 %}
                                             <p class="btn btn-danger">予約注文に追加済みです</p>
@@ -124,7 +129,6 @@
                                                 <button id="add_product_{{ plan.id }}" type="button" class="btn btn-primary add-to-cart">予約注文に追加</button>
                                             </li>
                                         {% endif %}
-
                                     {% elif plan.id == 7 %}
                                         {% if is_added_test7 %}
                                             <p class="btn btn-danger">予約注文に追加済みです</p>
@@ -134,7 +138,6 @@
                                                 <button id="add_product_{{ plan.id }}" type="button" class="btn btn-primary add-to-cart">予約注文に追加</button>
                                             </li>
                                         {% endif %}
-
                                     {% elif plan.id == 8 %}
                                         {% if is_added_test8 %}
                                             <p class="btn btn-danger">予約注文に追加済みです</p>
@@ -144,7 +147,6 @@
                                                 <button id="add_product_{{ plan.id }}" type="button" class="btn btn-primary add-to-cart">予約注文に追加</button>
                                             </li>
                                         {% endif %}
-
                                     {% elif plan.id == 9 %}
                                         {% if is_added_test9 %}
                                             <p class="btn btn-danger">予約注文に追加済みです</p>
@@ -154,7 +156,6 @@
                                                 <button id="add_product_{{ plan.id }}" type="button" class="btn btn-primary add-to-cart">予約注文に追加</button>
                                             </li>
                                         {% endif %}
-
                                     {% elif plan.id == 10 %}
                                         {% if is_added_test10 %}
                                             <p class="btn btn-danger">予約注文に追加済みです</p>
@@ -164,7 +165,6 @@
                                                 <button id="add_product_{{ plan.id }}" type="button" class="btn btn-primary add-to-cart">予約注文に追加</button>
                                             </li>
                                         {% endif %}
-
                                     {% elif plan.id == 11 %}
                                         {% if is_added_test11 %}
                                             <p class="btn btn-danger">予約注文に追加済みです</p>
@@ -174,7 +174,6 @@
                                                 <button id="add_product_{{ plan.id }}" type="button" class="btn btn-primary add-to-cart">予約注文に追加</button>
                                             </li>
                                         {% endif %}
-
                                     {% elif plan.id == 12 %}
                                         {% if is_added_test12 %}
                                             <p class="btn btn-danger">予約注文に追加済みです</p>
@@ -184,7 +183,6 @@
                                                 <button id="add_product_{{ plan.id }}" type="button" class="btn btn-primary add-to-cart">予約注文に追加</button>
                                             </li>
                                         {% endif %}
-
                                     {% elif plan.id == 13 %}
                                         {% if is_added_test13 %}
                                             <p class="btn btn-danger">予約注文に追加済みです</p>
@@ -194,7 +192,6 @@
                                                 <button id="add_product_{{ plan.id }}" type="button" class="btn btn-primary add-to-cart">予約注文に追加</button>
                                             </li>
                                         {% endif %}
-
                                     {% elif plan.id == 14 %}
                                         {% if is_added_test14 %}
                                             <p class="btn btn-danger">予約注文に追加済みです</p>
@@ -204,7 +201,6 @@
                                                 <button id="add_product_{{ plan.id }}" type="button" class="btn btn-primary add-to-cart">予約注文に追加</button>
                                             </li>
                                         {% endif %}
-
                                     {% elif plan.id == 15 %}
                                         {% if is_added_test15 %}
                                             <p class="btn btn-danger">予約注文に追加済みです</p>
@@ -214,7 +210,6 @@
                                                 <button id="add_product_{{ plan.id }}" type="button" class="btn btn-primary add-to-cart">予約注文に追加</button>
                                             </li>
                                         {% endif %}
-
                                     {% elif plan.id == 16 %}
                                         {% if is_added_test16 %}
                                             <p class="btn btn-danger">予約注文に追加済みです</p>
@@ -224,9 +219,8 @@
                                                 <button id="add_product_{{ plan.id }}" type="button" class="btn btn-primary add-to-cart">予約注文に追加</button>
                                             </li>
                                         {% endif %}
+                                    {% endif %} {% endcomment %}
 
-                                    {% endif %}
-                                
                                     {% comment %} 51~60保留 {% endcomment %}
                                    {% comment %} {% for id in plan.id %}
                                         <p>is_addedList_ForHtml[{{ id }}] : {{ is_addedList_ForHtml|get_item:id }}</p>
@@ -238,17 +232,18 @@
                                             {% endif %}
                                         {% endwith %}
                                     {% endfor %} {% endcomment %}
-                                  
-                                    {% comment %} <p>cart_product_id : {{cart_product_id}}</p> 
-                                    {% if is_added %}
-                                        <p class="btn btn-danger">予約注文に追加済みです</p>
-                                    {% else %}
+
+                                     {% comment %} <p>cart_product_id : {{cart_product_id}}</p>  {% endcomment %}
+                               
+                               {% comment %} 234~236　飛飛 {% endcomment %}
+                                {% comment %} {% if is_added %}
+                                    <p class="btn btn-danger">予約注文に追加済みです</p> {% endcomment %}
+                                     {% comment %} {% else %}
                                         <li>数量：
-                                            <input type="number" id="quantity_{{ plan.id }}" name="quantity" min="1" max="{{ plan.stock }}"><br>
-                                            <button id="add_product_{{ plan.id }}" type="button" class="btn btn-primary add-to-cart">予約注文に追加</button>
-                                        </li>
-                                    {% endif %}
-                                    {% endcomment %}
+                                            <input type="number" id="quantity_{{ plan.plan_id }}" name="quantity_{{ plan.plan_id }}" min="1" max="{{ plan.stock }}"><br>
+                                            <button id="add_product_{{ plan.plan_id }}" type="button" class="btn btn-primary add-to-cart">予約注文に追加</button>
+                                        </li>  {% endcomment %}
+                                {% comment %} {% endif %}    {% endcomment %}
                                 {% endif %}
                             </ul>
                         </div>
@@ -258,53 +253,61 @@
                             {% endfor %}
                         </div>
                     </div>
-                {% endfor %}
-                    <script>
-                        $(document).ready(function(){
-                            var requestInProgress = false;
+                    {% endfor %}
+                        <script>
+                            $(document).ready(function(){
+                                var requestInProgress = false;
 
-                                $('.add-to-cart').click(function(e){
-                                    e.preventDefault();
+                                    $('.add-to-cart').click(function(e){
+                                        e.preventDefault();
 
-                                    if (requestInProgress) return;
+                                        if (requestInProgress) return;
 
-                                    var button = $(this);
-                                    var planId = button.attr('id').split('_')[2];
-                                    var quantity = $("#quantity_" + planId).val();
+                                        var button = $(this);
+                                        var planId = button.attr('id').split('_')[2];
+                                        var quantity = $("#quantity_" + planId).val();
+                                        var checkinDate = $('#checkin-date').val();  
+                                        var checkoutDate = $('#checkout-date').val();
 
-                                    requestInProgress = true;
-                                    button.prop('disabled', true);
+                                        {% comment %} alert('planId: ' + planId);
+                                        alert('quantity: ' + quantity); {% endcomment %}
 
-                                    $.ajax({
-                                        url: '{% url "hotel:add_product" %}',
-                                        method: "POST",
-                                        data: {
-                                            product_id: planId, 
-                                            quantity: quantity,
-                                            csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val()
-                                        },
-                                        success: function(response){
-                                            alert(response.message);
-
-                                            button.text('予約注文に追加済み');
+                                        requestInProgress = true;
                                         
-                                        },
-                                        error: function(xhr){
-                                            if (xhr.status === 401) {
-                                                alert(xhr.responseJSON.message);
-                                                window.location.href = xhr.responseJSON.redirect;
-                                            } else {
-                                                alert(xhr.responseJSON.message || 'エラーが発生しました');
+
+                                        $.ajax({
+                                            url: '{% url "hotel:add_product" %}',
+                                            method: "POST",
+                                            data: {
+                                                product_id: planId, 
+                                                quantity: quantity,
+                                                checkin: checkinDate,
+                                                checkout: checkoutDate,
+                                                csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val()
+                                            },
+                                            success: function(response){
+                                                alert(response.message);
+
+                                                button.text('予約注文に追加済み');
+                                                button.prop('disabled', true);
+
+                                            },
+                                            error: function(xhr){
+                                                if (xhr.status === 401) {
+                                                    alert(xhr.responseJSON.message);
+                                                    window.location.href = xhr.responseJSON.redirect;
+                                                } else {
+                                                    alert(xhr.responseJSON.message || 'エラーが発生しました');
+                                                }
+                                            },
+                                            complete: function() {
+                                                //requestSent = false;
+                                                //button.prop('disabled', false);
                                             }
-                                        },
-                                        complete: function() {
-                                            requestSent = false;
-                                            button.prop('disabled', false);
-                                        }
+                                        });
                                     });
                                 });
-                            });
-                    </script>
+                        </script>
             {% endif %}
             </div>
         </div>
@@ -314,24 +317,29 @@
 
 {% block extra_css %}
 <style>
+.plans-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 20px; 
+}
+
 .plan-container {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: 0px;
     width: 100%;
     border-bottom: 1px solid #eee;
     padding-bottom: 10px;
 }
-.plan-info, .plan-details {
+.plan-info, .plan-details, .plan_images {
     border: 1px solid #ccc;
-    padding: 20px;
-    margin-right: 0px;
+    padding: 10px;
+    margin: 0px;
     flex: 1;
     min-width: 200px;
-    display: flex;
-    flex-direction: column;
 }
+
 .plan-images {
     flex-shrink: 0;
 }
@@ -343,52 +351,11 @@
     list-style: none;
     padding-left: 0;
 }
-.plan-info, .plan-details, .plan-images {
-    max-width: 300px;
+.plan-info, .plan-details, {
+    margin-right: 1px;
 }
 .plan-info h1, .plan-info h6 {
     text-align: center;
 }
 </style>
 {% endblock %}
-
-{% comment %} {% block extra_js %}
-<script>
-    $(document).ready(function(){
-        var isRequestSent = false;
-
-        $('.add-to-cart').click(function(){
-            if (isRequestSent) return;
-
-            var planId = $(this).attr('id').split('_')[2];
-            var quantity = $("#quantity_" + planId).val();
-
-            isRequestSent = true;
-
-            $.ajax({
-                url: '{% url "hotel:add_product" %}',
-                method: "POST",
-                data: {
-                    product_id: planId, 
-                    quantity: quantity,
-                    csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val()
-                },
-                success: function(response){
-                    alert(response.message);
-                    isRequestSent = false;
-                },
-                error: function(xhr){
-                    if (xhr.status === 401) {
-                        alert(xhr.responseJSON.message);
-                        window.location.href = xhr.responseJSON.redirect;
-                    } else {
-                        alert('エラーが発生しました');
-                    }
-                    isRequestSent = false;   
-                }
-            });
-        });
-    });
-</script>
-{% endblock %} {% endcomment %}
-
