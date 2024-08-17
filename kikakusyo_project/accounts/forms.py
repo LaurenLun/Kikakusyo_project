@@ -90,27 +90,54 @@ class UserLoginForm(AuthenticationForm):
 
 User = get_user_model() 
 
+
+
 class UserInfoForm(forms.ModelForm):
     class Meta:
         model = User
-        fields = [
+        fields = (
             'last_name', 
             'first_name', 
             'zip_code', 
             'address', 
             'phone_number', 
-            'email', 
-        ]
+        )
+        labels = {
+            'last_name': '名前(姓)', 
+            'first_name': '名前(名)', 
+            'zip_code': '郵便番号', 
+            'address': '住所', 
+            'phone_number': '電話番号', 
+        }
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        for field in self.fields.values():
+            field.widget.attrs['class'] = 'form-control'
+        
         # ユーザーの更新前情報をフォームに挿入
-        self.fields['last_name'].widget.attrs['value'] = kwargs.get('initial', {}).get('last_name', '')
-        self.fields['first_name'].widget.attrs['value'] = kwargs.get('initial', {}).get('first_name', '')
-        self.fields['zip_code'].widget.attrs['value'] = kwargs.get('initial', {}).get('zip_code', '')
-        self.fields['address'].widget.attrs['value'] = kwargs.get('initial', {}).get('address', '')
-        self.fields['phone_number'].widget.attrs['value'] = kwargs.get('initial', {}).get('phone_number', '')
-        self.fields['email'].widget.attrs['value'] = kwargs.get('initial', {}).get('email', '')
+        # self.fields['last_name'].widget.attrs['value'] = kwargs.get('initial', {}).get('last_name', '')
+        # self.fields['first_name'].widget.attrs['value'] = kwargs.get('initial', {}).get('first_name', '')
+        # self.fields['zip_code'].widget.attrs['value'] = kwargs.get('initial', {}).get('zip_code', '')
+        # self.fields['address'].widget.attrs['value'] = kwargs.get('initial', {}).get('address', '')
+        # self.fields['phone_number'].widget.attrs['value'] = kwargs.get('initial', {}).get('phone_number', '')
+        # self.fields['email'].widget.attrs['value'] = kwargs.get('initial', {}).get('email', '')
+    
+    def clean_zip_code(self):
+        zip_code = self.cleaned_data.get('zip_code')
+        if zip_code:
+            pattern = r'^(\d{3}-\d{4}|\d{7})$'
+            if not re.match(pattern, zip_code):
+                raise ValidationError('郵便番号は123-4567の形式、もしくは数字7桁で入力してください。')
+        return zip_code
+
+    def clean_phone_number(self):
+        phone_number = self.cleaned_data.get('phone_number')
+        if phone_number:
+            pattern = r'^(\d{3}-\d{4}-\d{4}|\d{11})$'
+            if not re.match(pattern, phone_number):
+                raise ValidationError('電話番号は090-1234-5678の形式、もしくは数字11桁で入力してください。')
+        return phone_number
     
         
     def update(self, user):
@@ -119,5 +146,21 @@ class UserInfoForm(forms.ModelForm):
         user.zip_code = self.cleaned_data['zip_code']
         user.address = self.cleaned_data['address']
         user.phone_number = self.cleaned_data['phone_number']
-        user.email = self.cleaned_data['email']
+        # user.email = self.cleaned_data['email']
         user.save()
+
+class EmailUpdateForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = ('email',)
+        labels = {'email': 'メールアドレス'}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['email'].widget.attrs['class'] = 'form-control'
+
+    def clean_email(self):
+        email = self.cleaned_data['email']
+        if User.objects.filter(email=email).exclude(pk=self.instance.pk).exists():
+            raise forms.ValidationError('このメールアドレスは既に使用されています。')
+        return email

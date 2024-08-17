@@ -37,10 +37,10 @@
             <div class="card-body">
                 <h5 class="card-title">料金情報</h5>
                 <p>合計金額: {{ order.total_price|intcomma }}円</p>
-                {% if order.kupon_amount %}
+                {% comment %} {% if order.kupon_amount %} {% endcomment %}
                     <p>クーポン割引: {{ order.kupon_amount|intcomma }}円</p>
-                {% endif %}
-                <p>最終料金: {{ order.actual_total_price|floatformat:0|intcomma }}円</p>
+                {% comment %} {% endif %} {% endcomment %}
+                <p>最終料金: {{ order.discounted_price|floatformat:0|intcomma }}円</p>
             </div>
         </div>
     {% endif %}

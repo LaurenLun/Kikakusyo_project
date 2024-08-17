@@ -1,8 +1,21 @@
 {% extends 'base.html' %}
 {% block content %}
-<form method="POST" style="text-align: center;">
+<div class="container">
+    <h2>ユーザー情報</h2>
+    <ul class="list-group mb-3">
+        <li class="list-group-item">名前（姓）: {{ user.last_name }}</li>
+        <li class="list-group-item">名前（名）: {{ user.first_name }}</li>
+        <li class="list-group-item">郵便番号: {{ user.zip_code }}</li>
+        <li class="list-group-item">住所: {{ user.address }}</li>
+        <li class="list-group-item">電話番号: {{ user.phone_number }}</li>
+        <li class="list-group-item">メールアドレス: {{ user.email }}</li>
+    </ul>
+    <a href="{% url 'accounts:update_us_info' %}" class="btn btn-primary">登録情報変更</a>
+    <a href="{% url 'accounts:update_email' %}" class="btn btn-secondary">メールアドレス変更</a>
+</div>
+{% comment %} <form method="POST" style="text-align: center;">
     {% csrf_token %}
     {{ form.as_p }}
     <input type="submit" value="ユーザー情報更新">
-</form>
+</form> {% endcomment %}
 {% endblock %}

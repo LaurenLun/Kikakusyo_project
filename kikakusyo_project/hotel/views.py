@@ -2,7 +2,7 @@ from django.db.models.query import QuerySet
 from django.shortcuts import render, get_object_or_404, redirect
 from .models import(
     HotelName, PlanName, HotelPictures, CyumonInfo, PlanListCalendar, 
-    Carts, CartItems, UserAddresses, Orders, OrderItems,
+    Carts, CartItems, UserAddresses, Orders, OrderItems, Room, Reservation,
 )
 from .forms import(
     CyumonInfoUpdateForm, UserAddressesInputForm,
@@ -39,6 +39,7 @@ from django.db import transaction
 from django.forms.models import model_to_dict
 from django.contrib import messages
 from datetime import datetime
+from decimal import Decimal
 # from .forms import HotelForm
 # Create your views here.
 
@@ -72,6 +73,10 @@ def calculate_new_total(kupon_amount):
     # 這裡只是一個示例，您需要根據實際情況來計算
     cart_total = 10000  # 假設購物車總額是 10000
     return max(0, cart_total - kupon_amount)
+
+def order_detail(request, order_id):
+    order = get_object_or_404(Orders, id=order_id)
+    return render(request, 'hotel/order_success_info.html', {'order': order})
 
 @login_required
 def input_address_view(request):
@@ -324,6 +329,15 @@ def add_product(request):
         checkin = request.POST.get('checkin')
         checkout = request.POST.get('checkout')
         
+        # cart_count = Carts.objects.get(user=request.user).cartitems_set.count()
+        # new_button_html = f'<button class="btn btn-secondary" disabled>希望するプランを予約注文に追加しました</button>'
+        
+        # return JsonResponse({
+        #     'message': '希望するプランを予約注文に追加しました',
+        #     'cart_count': cart_count,
+        #     'new_button_html': new_button_html
+        # })
+        
         try:
             checkin = datetime.strptime(checkin, '%Y-%m-%d').date() if checkin else None
             checkout = datetime.strptime(checkout, '%Y-%m-%d').date() if checkout else None
@@ -349,6 +363,16 @@ def add_product(request):
                 cart=cart,
                 defaults={'quantity': quantity, 'checkin': checkin, 'checkout': checkout}
             )
+            
+            # if created:
+            #     new_button_html = f'<button class="btn btn-primary" disabled>希望するプランを予約注文に追加しました</button>'
+            #     cart_count = cart.cartitems_set.count()
+            #     return JsonResponse({
+            #         'message': '希望するプランを予約注文に追加しました', 
+            #         'cart_count': cart_count,
+            #         'new_button_html': new_button_html
+            #     })
+            
 
             if not created:
                 return JsonResponse({'message': 'このプランは既に予約注文に追加されています'}, status=400)
@@ -374,6 +398,14 @@ def add_product(request):
         cart_item.quantity += quantity
         cart_item.save()
         return JsonResponse({'message': 'プランの数量を更新しました'})
+    
+    
+        # return JsonResponse({
+        #     'message': '希望するプランを予約注文に追加しました',
+        #     'cart_count': cart_count,
+        #     'new_button_html': new_button_html
+        # })
+
         
     return JsonResponse({'message': '無効なリクエストです'}, status=400)
 
@@ -716,10 +748,12 @@ class ConfirmOrderView(LoginRequiredMixin, TemplateView):
             items.append(tmp_item)
             print(f"Item: {tmp_item['name']}, Nights: {nights}, Total: {item_total}")
 
+        kupon_amount = int(self.request.GET.get('kupon_amount', 0))
         context['items'] = items
         context['total_price'] = total_price
-        context['kupon_amount'] = int(self.request.GET.get('kupon_amount', 0))
-        context['discounted_price'] = max(0, total_price - int(kupon_amount))
+        # context['kupon_amount'] = int(self.request.GET.get('kupon_amount', 0))
+        context['kupon_amount'] = kupon_amount
+        context['discounted_price'] = max(0, total_price - kupon_amount)
         
         # print("Items:", items)
         # print("Total Price:", total_price)
@@ -762,8 +796,10 @@ class ConfirmOrderView(LoginRequiredMixin, TemplateView):
 
 
             order = Orders.objects.insert_cart(cart, address, actual_total_price)
+            order.kupon_amount = kupon_amount
             OrderItems.objects.insert_cart_items(cart, order)
-            PlanName.objects.reduce_stock(cart)            
+            PlanName.objects.reduce_stock(cart)        
+            order.save()    
             # kupon_amount = int(kupon_amount) if kupon_amount else 0
             # actual_total_price = float(total_price or 0) - kupon_amount
             
@@ -783,6 +819,35 @@ class ConfirmOrderView(LoginRequiredMixin, TemplateView):
             return redirect('hotel:input_useraddresses')
     
             # return render(request, 'hotel/order_success.html', {'order': order})
+
+
+@login_required
+def confirm_order(request):
+    if request.method == 'POST':
+        kupon_amount = Decimal(request.POST.get('kupon_amount', 0))
+        total_price = Decimal(request.POST.get('total_price', 0))
+        discounted_price = Decimal(request.POST.get('discounted_price', 0))
+        
+        # 創建訂單
+        order = Orders.objects.create(
+            total_price=total_price,
+            kupon_amount=kupon_amount,
+            user=request.user,
+            # 其他必要的字段，例如：
+            # address=UserAddresses.objects.get(id=request.POST.get('address_id'))
+        )
+        
+        # 重定向到訂單詳情頁面
+        return redirect('hotel:order_success_info', order_id=order.id)
+    return redirect('hotel:some_error_page')
+
+@login_required
+def order_detail(request, order_id):
+    order = get_object_or_404(Orders, id=order_id, user=request.user)
+    return render(request, 'hotel/order_success_info.html', {'order': order})
+
+def some_error_page(request):
+    return render(request, 'hotel/error.html', {'message': '無効なリクエストです。'})
     
                     
 class OrderSuccessView(LoginRequiredMixin, TemplateView):
@@ -820,6 +885,9 @@ class OrderSuccessView(LoginRequiredMixin, TemplateView):
             context['order'] = order
             context['order_items'] = order.orderitems_set.all()
             context['address'] = order.address
+            # context['kupon_amount'] = order.kupon_amount
+            # context['actual_total_price'] = order.total_price - order.kupon_amount
+            
         return context
         
         # # 清除會話中的訂單ID
@@ -903,6 +971,52 @@ class OrdersDetailView(LoginRequiredMixin, DetailView):
         return context
     
 
+
+@require_POST
+def cancel_reservation(request, order_id):
+    # reservation = get_object_or_404(Reservation, id=reservation_id)
+    # reservation.cancel()
+    try:
+        order = get_object_or_404(Orders, id=order_id, user=request.user)
+        order.cancel()
+        return JsonResponse({"message": "予約が正常にキャンセルされました。"})
+    except Orders.DoesNotExist:
+        logger.error(f"Order {order_id} not found for user {request.user.id}")
+        return JsonResponse({"message": "予約が見つかりません。"}, status=404)
+    except Exception as e:
+        logger.exception(f"Error cancelling order {order_id}: {str(e)}")
+        return JsonResponse({"message": f"キャンセル処理中にエラーが発生しました: {str(e)}"}, status=500)
+
+def create_order(user, cart_items):
+    order = Orders.objects.create(user=user)
+    for item in cart_items:
+        OrderItems.objects.create(
+            order=order,
+            product=item.product,
+            quantity=item.quantity
+        )
+        if item.product.room:
+            room = item.product.room
+            room.available_rooms -= item.quantity
+            room.save()
+    return order
+    
+# def room_list(request):
+#     rooms = Room.objects.all()
+#     context = {
+#         'rooms': rooms
+#     }
+#     return render(request, 'room_list.html', context)
+
+# def reservation_confirm(request, reservation_id):
+#     reservation = get_object_or_404(Reservation, id=reservation_id)
+#     context = {
+#         'reservation': reservation
+#     }
+#     return render(request, 'reservation_confirm.html', context)       
+    
+
+
 class DeleteOrderView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
     model = Orders
     template_name = 'hotel/delete_order.html'
@@ -917,5 +1031,16 @@ class DeleteOrderView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
         if not obj.user == self.request.user:
             raise Http404
         return obj
-        
+    
+    def delete(self, request, *args, **kwargs):
+        # self.object = self.get_object()
+        # success_url = self.get_success_url()
+        # self.object.cancel()  # 调用 cancel 方法而不是直接删除
+        # return HttpResponseRedirect(success_url)
+        try:
+            return super().delete(request, *args, **kwargs)
+        except Exception as e:
+            logger.exception(f"Error deleting order: {str(e)}")
+            return JsonResponse({"message": f"注文の削除中にエラーが発生しました: {str(e)}"}, status=500)
+    
     

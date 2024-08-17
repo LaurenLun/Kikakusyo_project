@@ -4,6 +4,7 @@ from accounts.models import Users
 from django.contrib.auth.models import User
 from django.utils import timezone
 from django.conf import settings
+from decimal import Decimal
 # from .forms import HotelForm
 
 # Create your models here.
@@ -200,10 +201,13 @@ class OrdersManager(models.Manager):
     def insert_cart(self, cart, useraddresses, total_price):
         if not cart.id:
             cart.save()
+        # actual_total_price = total_price - cart.kupon_amount
         return self.create(
             total_price = total_price,
             address = useraddresses,
             user = cart.user,
+            # kupon_amount=cart.kupon_amount,
+            # actual_total_price=cart.actual_total_price,
         )
 
 class Orders(models.Model):
@@ -231,7 +235,21 @@ class Orders(models.Model):
     
     @property
     def actual_total_price(self):
-        return self.total_price - self.kupon_amount
+        return self.total_price - Decimal(str(self.kupon_amount))
+    
+    @property
+    def discounted_price(self):
+        return max(self.total_price - self.kupon_amount, 0)
+    
+    def cancel(self):
+        for order_item in self.orderitems_set.all():
+            if order_item.product and order_item.product.room:
+                room = order_item.product.room
+                room.available_rooms += order_item.quantity
+                room.save()
+                
+        self.status = 'cancelled'  # 假设有一个状态字段
+        self.save()
 
 class OrderItemsManager(models.Manager):
     
@@ -268,3 +286,26 @@ class OrderItems(models.Model):
         db_table = 'order_items'
         unique_together = [['product', 'order']]
         
+
+class Room(models.Model):
+    room_type = models.CharField(max_length=50)
+    available_rooms = models.IntegerField(default=0)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+
+    def increase_available_rooms(self, count):
+        self.available_rooms += count
+        self.save()
+
+class Reservation(models.Model):
+    guest_name = models.CharField(max_length=100)
+    room = models.ForeignKey(Room, on_delete=models.CASCADE)
+    check_in_date = models.DateField()
+    check_out_date = models.DateField()
+    room_count = models.IntegerField(default=1)
+    is_cancelled = models.BooleanField(default=False)
+
+    def cancel(self):
+        if not self.is_cancelled:
+            self.is_cancelled = True
+            self.room.increase_available_rooms(self.room_count)
+            self.save()

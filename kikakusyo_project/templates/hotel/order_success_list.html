@@ -11,7 +11,7 @@
                 <th>チェックアウト日</th> {% endcomment %}
                 {% comment %} <th>合計金額</th>{% endcomment %}
                 <th>詳細</th> 
-                <th>削除</th>
+                <th>キャンセル</th>
             </tr>
         </thead>
         <tbody>
@@ -24,7 +24,55 @@
                 {% comment %} <td>{{ order.total_price }}円</td> {% endcomment %}
                 <td>
                 <a href="{% url 'hotel:order_success_info' pk=order.id %}" class="btn btn-primary">詳細を見る</a>
-                <a href="{% url 'hotel:delete_order' pk=order.id %}" class="btn btn-danger btn-sm">削除</a>
+                </td>
+                <td>
+                {% csrf_token %}
+                <a href="{% url 'hotel:delete_order' pk=order.id %}" onclick="cancelReservation({{ order.id }}); return false;" class="btn btn-danger btn-sm">予約をキャンセル</a>
+                <script>
+                function getCookie(name) {
+                    let cookieValue = null;
+                    if (document.cookie && document.cookie !== '') {
+                        const cookies = document.cookie.split(';');
+                        for (let i = 0; i < cookies.length; i++) {
+                            const cookie = cookies[i].trim();
+                            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                                break;
+                            }
+                        }
+                    }
+                    return cookieValue;
+                }
+                function deleteOrder(orderId) {
+                    {% comment %} if (confirm('本当にこの予約をキャンセルしますか？')) { {% endcomment %}
+                        const csrftoken = getCookie('csrftoken');
+                        fetch(`/hotel/order/${orderId}/delete/`, {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRFToken': csrftoken,
+                                'Content-Type': 'application/json'
+                            },
+                            credentials: 'same-origin'
+                        })
+                        .then(response => {
+                            if (!response.ok) {
+                                {% comment %} return response.json().then(data => { {% endcomment %}
+                                    throw new Error(data.message || 'キャンセル処理中にエラーが発生しました。');
+                                });
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            alert(data.message);
+                            window.location.reload();
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            alert('キャンセル処理中にエラーが発生しました。');
+                        });
+                    }    
+                }
+                </script>
                 </td>
             </tr>
             {% empty %}

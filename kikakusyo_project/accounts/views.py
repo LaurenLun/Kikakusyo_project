@@ -2,9 +2,9 @@ from typing import Any
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render, redirect
 from django.views.generic import CreateView, TemplateView
-from django.views.generic.edit import FormView
+from django.views.generic.edit import FormView, UpdateView
 from django.views.generic import FormView
-from .forms import RegistForm, UserLoginForm, UserInfoForm
+from .forms import RegistForm, UserLoginForm, UserInfoForm, EmailUpdateForm
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.views import LoginView, LogoutView
 from django.views.generic.base import View
@@ -93,6 +93,7 @@ class UserInfoView(LoginRequiredMixin, FormView):
     
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
+        kwargs['instance'] = self.request.user
         # 更新前のユーザー情報をkwargsとして渡す
         kwargs['initial'] = {
             'last_name' : self.request.user.last_name,
@@ -109,4 +110,39 @@ class UserInfoView(LoginRequiredMixin, FormView):
         messages.success(self.request, "ユーザー情報を更新しました")
         return super().form_valid(form)
 
+class EmailUpdateView(LoginRequiredMixin, UpdateView):
+    model = User
+    form_class = EmailUpdateForm
+    template_name = 'email_update.html'
+    success_url = reverse_lazy('accounts:us_info')
+
+    def get_object(self, queryset=None):
+        return self.request.user
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(self.request, "メールアドレスを更新しました")
+        return response
+
+
+class UpdateUserInfoView(LoginRequiredMixin, UpdateView):
+    model = User
+    form_class = UserInfoForm
+    template_name = 'update_us_info.html'
+    success_url = reverse_lazy('accounts:us_info')
+
+    def get_object(self, queryset=None):
+        return self.request.user
+
+    def form_valid(self, form):
+        # form.update(user=self.request.user)
+        messages.success(self.request, 'ユーザー情報が更新されました。')
+        return super().form_valid(form)
     
+    def form_invalid(self, form):
+        # messages.error(self.request, '入力内容に誤りがあります。')
+        # return super().form_invalid(form)
+        for field, errors in form.errors.items():
+            for error in errors:
+                messages.error(self.request, f"{form.fields[field].label}: {error}")
+        return self.render_to_response(self.get_context_data(form=form))

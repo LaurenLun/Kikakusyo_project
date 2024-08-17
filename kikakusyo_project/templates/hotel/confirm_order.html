@@ -95,9 +95,12 @@
             {% comment %} <h3 class="text-right">クーポン適用後合計： {{ discounted_price|floatformat:0 }}円</h3> {% endcomment %}
             <h3 class="text-right">クーポン適用後： <span id="discounted_price">{{ discounted_price }}</span>円</h3>
             <br>
+            {% comment %} <form method="POST" action="{% url 'hotel:confirm_order' %}" class="text-right"> {% endcomment %}
             <form method="POST" action="{% url 'hotel:confirm_order' %}" class="text-right">
                 {% csrf_token %}
                 <input type="hidden" name="kupon_amount" value="{{ kupon_amount }}">
+                <input type="hidden" name="total_price" value="{{ total_price }}">
+                <input type="hidden" name="discounted_price" value="{{ discounted_price }}">
                 <button type="submit" class="btn btn-primary">予約注文を確定する</button>
             </form>  
         </div>
