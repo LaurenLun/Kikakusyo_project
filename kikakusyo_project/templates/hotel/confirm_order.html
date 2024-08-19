@@ -65,19 +65,28 @@
                 $(document).ready(function() {
                     $('#kuponForm').on('submit', function(e) {
                         e.preventDefault();
+                        console.log("kupon_amount:", kupon_amount.value);
                         $.ajax({
-                            url: $(this).attr('action'),
+                            //url: $(this).attr('action'),
+                            url: "{% url 'hotel:apply_kupon' %}",
                             type: 'POST',
                             data: $(this).serialize(),
                             dataType: 'json',
                             headers: {
                                 "X-Requested-With": "XMLHttpRequest",
+                                "X-CSRFToken": $('input[name=csrfmiddlewaretoken]').val()
                             },
                             success: function(data) {
                                 $('#total_price').text(data.total_price);
                                 $('#discounted_price').text(data.discounted_price);
                                 $('#kupon_amount').val(data.kupon_amount);
-                                $('.btn-primary').attr('href', "{% url 'hotel:input_useraddresses' %}?kupon_amount=" + data.kupon_amount);
+                                $('input[name="kupon_amount"]').val(data.kupon_amount);
+                                $('input[name="total_price"]').val(data.total_price);
+                                $('input[name="discounted_price"]').val(data.discounted_price);
+                                //$('.btn-primary').attr('href', "{% url 'hotel:input_useraddresses' %}?kupon_amount=" + data.kupon_amount);
+                                
+                                console.log("data.discounted_price:", data.discounted_price);
+                                console.log("data.kupon_amount:", data.kupon_amount);
                             },
                             
                             error: function(jqXHR, textStatus, errorThrown) {
@@ -98,11 +107,16 @@
             {% comment %} <form method="POST" action="{% url 'hotel:confirm_order' %}" class="text-right"> {% endcomment %}
             <form method="POST" action="{% url 'hotel:confirm_order' %}" class="text-right">
                 {% csrf_token %}
-                <input type="hidden" name="kupon_amount" value="{{ kupon_amount }}">
-                <input type="hidden" name="total_price" value="{{ total_price }}">
-                <input type="hidden" name="discounted_price" value="{{ discounted_price }}">
+                <input type="hidden" name="kupon_amount" value="{{ kupon_amount|default:0 }}">
+                <input type="hidden" name="total_price" value="{{ total_price|default:0 }}">
+                <input type="hidden" name="discounted_price" value="{{ discounted_price|default:0 }}">
                 <button type="submit" class="btn btn-primary">予約注文を確定する</button>
             </form>  
+            <script>
+            console.log("kupon_amount:", {{ kupon_amount|default:0 }});
+            console.log("total_price:", {{ total_price|default:0 }});
+            console.log("discounted_price:", {{ discounted_price|default:0 }});
+            </script>
         </div>
         <div class="col-md-3"></div>
     </div>

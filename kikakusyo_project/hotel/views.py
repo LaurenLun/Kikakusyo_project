@@ -28,7 +28,7 @@ from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views import generic
 from django.views.decorators.csrf import csrf_exempt
-from django.db.models import Q
+from django.db.models import Q, F
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, Http404, HttpResponseBadRequest, HttpResponseRedirect
 from django.contrib import messages
@@ -56,16 +56,27 @@ def apply_kupon(request):
     if not request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return HttpResponseBadRequest("Only AJAX requests are allowed")
     
-    kupon_amount = int(request.POST.get('kupon_amount', 0))
+    kupon_amount = Decimal(request.POST.get('kupon_amount', '0'))
     cart = Carts.objects.filter(user=request.user).first()
-    total_price = sum(item.product.price * item.quantity * ((item.checkout - item.checkin).days if item.checkin and item.checkout else 1) for item in cart.cartitems_set.all())
-    discounted_price = max(0, total_price - kupon_amount)
+    # total_price = sum(item.product.price * item.quantity * ((item.checkout - item.checkin).days if item.checkin and item.checkout else 1) for item in cart.cartitems_set.all())
+    # discounted_price = max(0, total_price - kupon_amount)
     # new_total = calculate_new_total(kupon_amount) 
     
+    if not cart:
+        return JsonResponse({'error': 'Cart not found'}, status=404)
+    
+    total_price = sum(
+        item.product.price * item.quantity * 
+        ((item.checkout - item.checkin).days if item.checkin and item.checkout else 1) 
+        for item in cart.cartitems_set.all()
+    )
+    discounted_price = max(Decimal('0'), total_price - kupon_amount)
+    
+    
     return JsonResponse({
-        'total_price': total_price,
-        'discounted_price': discounted_price,
-        'kupon_amount': kupon_amount
+        'total_price': str(total_price),
+        'discounted_price': str(discounted_price),
+        'kupon_amount': str(kupon_amount)
     })
 
 def calculate_new_total(kupon_amount):
@@ -624,19 +635,12 @@ class ConfirmOrderView(LoginRequiredMixin, TemplateView):
             messages.error(request, '住所情報が見つかりません')
             return redirect('hotel:input_useraddresses')
         
+        
         try:
             address = UserAddresses.objects.get(id=address_id, user=self.request.user)
         except UserAddresses.DoesNotExist:
             messages.error(request, '住所情報が見つかりません')
             return redirect('hotel:input_useraddresses')
-        
-        if isinstance(kupon_amount, str):
-            try:
-                kupon_amount = int(kupon_amount.split('?')[0])
-            except ValueError:
-                kupon_amount = 0
-        elif not isinstance(kupon_amount, int):
-            kupon_amount = 0
 
         if not address_id:
             return redirect('hotel:input_useraddresses')
@@ -672,15 +676,8 @@ class ConfirmOrderView(LoginRequiredMixin, TemplateView):
         if not address:
             address = UserAddresses.objects.filter(user=self.request.user).last()  
         
-        kupon_amount = kwargs.get('kupon_amount', 0)
+        # kupon_amount = kwargs.get('kupon_amount', 0)
         # address_id = self.request.GET.get('address_id')
-        if isinstance(kupon_amount, str):
-            try:
-                kupon_amount = int(kupon_amount.split('?')[0])  # 取第一個問號前的部分
-            except ValueError:
-                kupon_amount = 0
-        elif not isinstance(kupon_amount, int):
-            kupon_amount = 0
             
         if not cart:
             logger.warning(f"No cart found for user {self.request.user}")
@@ -743,7 +740,7 @@ class ConfirmOrderView(LoginRequiredMixin, TemplateView):
                 'checkout': item.checkout,
                 'nights': nights,
                 'item_total': item_total,
-                # 'kupon_amount': item.kupon_amount,
+                'kupon_amount': item.kupon_amount,
             }        
             items.append(tmp_item)
             print(f"Item: {tmp_item['name']}, Nights: {nights}, Total: {item_total}")
@@ -770,6 +767,7 @@ class ConfirmOrderView(LoginRequiredMixin, TemplateView):
         # address = context.get('address')
                      
         cart = context.get('cart')
+        
         if not cart or not cart.cartitems_set.exists():
             messages.error(request, '購物車に商品がありません')
             return redirect('hotel:cyumon_info')
@@ -778,30 +776,55 @@ class ConfirmOrderView(LoginRequiredMixin, TemplateView):
         address_id = request.session.get('selected_address_id')
         address = get_object_or_404(UserAddresses, id=address_id, user=request.user)
             
-        if not address:
-            messages.error(request, '住所情報が見つかりません')
-            return redirect('hotel:input_useraddresses')
+        # if not address:
+        #     messages.error(request, '住所情報が見つかりません')
+        #     return redirect('hotel:input_useraddresses')
                     
-        total_price = context.get('total_price', 0)
-        # total_price = context('total_price')
-        kupon_amount = int(request.POST.get('kupon_amount', 0))
-        actual_total_price = max(0, total_price - kupon_amount)
+        # total_price = context.get('total_price', 0)
+        # kupon_amount = int(request.POST.get('kupon_amount', 0))
+        # discounted_price = max(0, total_price - kupon_amount)
+        # messages.error(request, kupon_amount)
+        # messages.error(request, '住所情報が見つかりません')
         
-        logger.debug(f"Total price: {total_price}, Kupon amount: {kupon_amount}, Actual total price: {actual_total_price}")
+        kupon_amount = Decimal(request.POST.get('kupon_amount', '0'))
+        total_price = Decimal(request.POST.get('total_price', '0'))
+        discounted_price = Decimal(request.POST.get('discounted_price', '0'))
+        
+        logger.debug(f"Total price: {total_price}, Kupon amount: {kupon_amount}")
         
         try: 
             for item in cart.cartitems_set.all():
                 if item.quantity > item.product.stock:
                     raise Http404('予約注文処理でエラーが発生しました')
+                
+                
+            order = Orders.objects.create(
+                user=request.user,
+                address=address,
+                total_price=total_price,
+                kupon_amount=kupon_amount,
+                # discounted_price=max(Decimal('0'), total_price - kupon_amount)
+                discounted_price=discounted_price               
+            )
+            
+            order.discounted_price = F('total_price') - F('kupon_amount')
+            order.save()
+            
+            order.refresh_from_db()
+            
 
-
-            order = Orders.objects.insert_cart(cart, address, actual_total_price)
-            order.kupon_amount = kupon_amount
+            # order = Orders.objects.insert_cart(cart, address, total_price)
+            # order.kupon_amount =  kupon_amount
+            # order.save()
+            
+                        
+            # order.discounted_price = discounted_price
             OrderItems.objects.insert_cart_items(cart, order)
-            PlanName.objects.reduce_stock(cart)        
-            order.save()    
+            PlanName.objects.reduce_stock(cart)      
+              
+            # order.save()    
             # kupon_amount = int(kupon_amount) if kupon_amount else 0
-            # actual_total_price = float(total_price or 0) - kupon_amount
+            # discounted_price = float(total_price or 0) - kupon_amount
             
             request.session['completed_order_id'] = order.id
             if 'kupon_amount' in request.session:
@@ -885,8 +908,8 @@ class OrderSuccessView(LoginRequiredMixin, TemplateView):
             context['order'] = order
             context['order_items'] = order.orderitems_set.all()
             context['address'] = order.address
-            # context['kupon_amount'] = order.kupon_amount
-            # context['actual_total_price'] = order.total_price - order.kupon_amount
+            context['kupon_amount'] = order.kupon_amount
+            context['discounted_price'] = order.total_price - order.kupon_amount
             
         return context
         
@@ -967,7 +990,9 @@ class OrdersDetailView(LoginRequiredMixin, DetailView):
         context = super().get_context_data(**kwargs)
         order = self.object
         context['order_items'] = order.orderitems_set.all().select_related('product', 'product__hotel')
-        context['address'] = order.address        
+        context['address'] = order.address 
+        context['kupon_amount'] = order.kupon_amount
+        context['discounted_price'] = order.discounted_price        
         return context
     
 
@@ -1033,12 +1058,14 @@ class DeleteOrderView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
         return obj
     
     def delete(self, request, *args, **kwargs):
-        # self.object = self.get_object()
-        # success_url = self.get_success_url()
-        # self.object.cancel()  # 调用 cancel 方法而不是直接删除
-        # return HttpResponseRedirect(success_url)
         try:
-            return super().delete(request, *args, **kwargs)
+            self.object = self.get_object()
+            success_url = self.get_success_url()
+            self.object.cancel()
+            self.object.delete()
+            return HttpResponseRedirect(success_url)
+       
+            # return super().delete(request, *args, **kwargs)
         except Exception as e:
             logger.exception(f"Error deleting order: {str(e)}")
             return JsonResponse({"message": f"注文の削除中にエラーが発生しました: {str(e)}"}, status=500)

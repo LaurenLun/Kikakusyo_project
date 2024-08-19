@@ -44,7 +44,7 @@
                     return cookieValue;
                 }
                 function deleteOrder(orderId) {
-                    {% comment %} if (confirm('本当にこの予約をキャンセルしますか？')) { {% endcomment %}
+
                         const csrftoken = getCookie('csrftoken');
                         fetch(`/hotel/order/${orderId}/delete/`, {
                             method: 'POST',
@@ -54,11 +54,10 @@
                             },
                             credentials: 'same-origin'
                         })
+
                         .then(response => {
                             if (!response.ok) {
-                                {% comment %} return response.json().then(data => { {% endcomment %}
-                                    throw new Error(data.message || 'キャンセル処理中にエラーが発生しました。');
-                                });
+                                throw new Error(data.message || 'キャンセル処理中にエラーが発生しました。');
                             }
                             return response.json();
                         })
@@ -70,8 +69,7 @@
                             console.error('Error:', error);
                             alert('キャンセル処理中にエラーが発生しました。');
                         });
-                    }    
-                }
+                } 
                 </script>
                 </td>
             </tr>

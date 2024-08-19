@@ -5,6 +5,7 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 from django.conf import settings
 from decimal import Decimal
+
 # from .forms import HotelForm
 
 # Create your models here.
@@ -201,17 +202,21 @@ class OrdersManager(models.Manager):
     def insert_cart(self, cart, useraddresses, total_price):
         if not cart.id:
             cart.save()
-        # actual_total_price = total_price - cart.kupon_amount
+        # discounted_price = total_price - cart.kupon_amount
         return self.create(
+        # order = self.create(
             total_price = total_price,
             address = useraddresses,
             user = cart.user,
             # kupon_amount=cart.kupon_amount,
-            # actual_total_price=cart.actual_total_price,
+            # discounted_price=cart.discounted_price,
         )
+        # return order
 
 class Orders(models.Model):
-    total_price = models.PositiveIntegerField()
+    total_price = models.DecimalField(max_digits=10, decimal_places=2)
+    kupon_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    discounted_price = models.DecimalField(max_digits=10, decimal_places=2)
     created_at = models.DateTimeField(default=timezone.now)
     address = models.ForeignKey(
         UserAddresses,
@@ -227,19 +232,33 @@ class Orders(models.Model):
         null=True,
         related_name='orders'
     )
-    kupon_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    status = models.CharField(max_length=20, default='pending')
     
     objects = OrdersManager()
+    
     class Meta:
         db_table = 'orders'
+        
+    def save(self, *args, **kwargs):
+        # if not self.discounted_price:
+        # self.discounted_price = max(0, self.total_price - self.kupon_amount)
+        if self.total_price is not None and self.kupon_amount is not None:
+            self.discounted_price = max(Decimal('0'), self.total_price - self.kupon_amount)
+        super().save(*args, **kwargs)
+    
     
     @property
-    def actual_total_price(self):
-        return self.total_price - Decimal(str(self.kupon_amount))
+    def calculated_discounted_price(self):
+        return max(Decimal('0'), self.total_price - self.kupon_amount)
     
-    @property
-    def discounted_price(self):
-        return max(self.total_price - self.kupon_amount, 0)
+
+    # @property
+    # def discounted_price(self):
+    #     return self.total_price - Decimal(str(self.kupon_amount))
+    
+    # @property
+    # def discounted_price(self):
+    #     return max(self.total_price - self.kupon_amount, 0)
     
     def cancel(self):
         for order_item in self.orderitems_set.all():
@@ -289,7 +308,7 @@ class OrderItems(models.Model):
 
 class Room(models.Model):
     room_type = models.CharField(max_length=50)
-    available_rooms = models.IntegerField(default=0)
+    available_rooms = models.PositiveIntegerField(default=1)
     price = models.DecimalField(max_digits=10, decimal_places=2)
 
     def increase_available_rooms(self, count):
