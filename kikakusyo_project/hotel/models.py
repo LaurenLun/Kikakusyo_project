@@ -6,6 +6,7 @@ from django.utils import timezone
 from django.conf import settings
 from decimal import Decimal
 import logging
+from django.db import transaction
 logger = logging.getLogger(__name__)
 
 # from .forms import HotelForm
@@ -56,6 +57,14 @@ class PlanName(models.Model):
     
     def __str__(self):
         return self.name
+    
+    def decrease_stock(self, quantity):
+        if self.stock >= quantity:
+            self.stock -= quantity
+            self.save()
+            return True
+        return False
+
 
 class HotelPictures(models.Model):
     image = models.FileField(upload_to='hotel_pictures/', null=True)
@@ -162,6 +171,15 @@ class CartItems(models.Model):
             'checkout': self.checkout,
         }
         # return context
+    
+    def restore_stock(self):
+        if self.product:
+            self.product.stock += self.quantity
+            self.product.save()
+            if hasattr(self.product, 'room') and self.product.room:
+                self.product.room.available_rooms += self.quantity
+                self.product.room.save()
+
 
 class PlanListCalendar(models.Model):
     plans = models.ForeignKey(PlanName, on_delete=models.CASCADE)
@@ -201,18 +219,42 @@ class UserAddresses(models.Model):
 
 class OrdersManager(models.Manager):
     
-    def insert_cart(self, cart, useraddresses, total_price):
-        if not cart.id:
-            cart.save()
-        # discounted_price = total_price - cart.kupon_amount
-        return self.create(
-        # order = self.create(
-            total_price = total_price,
-            address = useraddresses,
-            user = cart.user,
-            # kupon_amount=cart.kupon_amount,
-            # discounted_price=cart.discounted_price,
-        )
+    def create_order(self, user, cart_items, address, total_price, kupon_amount):
+        with transaction.atomic():
+            order = self.create(
+                user=user,
+                address=address,
+                total_price=total_price,
+                kupon_amount=kupon_amount
+            )
+    
+            for item in cart_items:
+                OrderItems.objects.create(
+                    order=order,
+                    product=item.product,
+                    quantity=item.quantity,
+                    checkin=item.checkin,
+                    checkout=item.checkout
+                )
+                if item.product:
+                    item.product.stock -= item.quantity
+                    item.product.save()
+
+                    if hasattr(item.product, 'room') and item.product.room:
+                        item.product.room.available_rooms -= item.quantity
+                        item.product.room.save()
+            
+            logger.info(f"Order created successfully for user {user.id}")
+            return order
+    
+    # def insert_cart(self, cart, useraddresses, total_price):
+    #     if not cart.id:
+    #         cart.save()
+    #     return self.create(
+    #         total_price = total_price,
+    #         address = useraddresses,
+    #         user = cart.user,
+    #     )
         # return order
 
 class Orders(models.Model):
@@ -248,49 +290,28 @@ class Orders(models.Model):
         self.discounted_price = max(Decimal('0'), self.total_price - self.kupon_amount)
         super().save(*args, **kwargs)
     
-    
-    # @property
-    # def calculated_discounted_price(self):
-    #     return max(Decimal('0'), self.total_price - self.kupon_amount)
-    
+    def cancel_and_restore_stock(self):
+        with transaction.atomic():
+            for order_item in self.orderitems_set.all():
+                product = order_item.product
+                if product:
+                    logger.info(f"Restoring stock for product {product.id}: Current stock: {product.stock}, Quantity to restore: {order_item.quantity}")
+                    product.stock += order_item.quantity
+                    product.save()
+                    logger.info(f"Stock restored. New stock: {product.stock}")
 
-    # @property
-    # def discounted_price(self):
-    #     return self.total_price - Decimal(str(self.kupon_amount))
-    
-    # @property
-    # def discounted_price(self):
-    #     return max(self.total_price - self.kupon_amount, 0)
-    
-    def cancel(self):
+                    if hasattr(product, 'room') and product.room:
+                        logger.info(f"Restoring rooms for product {product.id}: Current available rooms: {product.room.available_rooms}, Rooms to restore: {order_item.quantity}")
+                        product.room.available_rooms += order_item.quantity
+                        product.room.save()
+                        logger.info(f"Rooms restored. New available rooms: {product.room.available_rooms}")
+
+            self.status = 'cancelled'  # 假设有一个状态字段
+            self.save()
+        logger.info(f"Order {self.id} cancelled successfully and stock restored")
+
         
-        logger.info(f"Cancelling order {self.id}")
-        for order_item in self.orderitems_set.all():
-            product = order_item.product
-            if product:
-                logger.info(f"Restoring stock for product {product.id}: {order_item.quantity}")
-                product.stock += order_item.quantity
-                product.save()
-                
-                # if product.room:
-                if hasattr(product, 'room') and product.room:
-                    logger.info(f"Restoring available rooms for room {product.room.id}: {order_item.quantity}")
-                    product.room.available_rooms += order_item.quantity
-                    product.room.save()
-                    
-            # if order_item.product and order_item.product.room:
-            #     room = order_item.product.room
-            #     room.available_rooms += order_item.quantity
-            #     room.save()
-                
-            # 恢复 PlanName 的库存
-            # if order_item.product:
-            #     order_item.product.stock += order_item.quantity
-            #     order_item.product.save()
-                            
-        self.status = 'cancelled'  # 假设有一个状态字段
-        self.save()
-        logger.info(f"Order {self.id} cancelled successfully")
+
 
 class OrderItemsManager(models.Manager):
     
@@ -317,7 +338,7 @@ class OrderItems(models.Model):
         null=True,
     )
     order = models.ForeignKey(
-        Orders, on_delete=models.CASCADE
+        Orders, on_delete=models.CASCADE, related_name='orderitems_set'
     )
     checkin = models.DateField(null=True, blank=True)
     checkout = models.DateField(null=True, blank=True)
@@ -339,12 +360,19 @@ class OrderItems(models.Model):
 
 class Room(models.Model):
     room_type = models.CharField(max_length=50)
-    available_rooms = models.PositiveIntegerField(default=1)
+    available_rooms = models.PositiveIntegerField(default=0)
     price = models.DecimalField(max_digits=10, decimal_places=2)
 
     def increase_available_rooms(self, count):
         self.available_rooms += count
         self.save()
+        
+    def decrease_available_rooms(self, quantity):
+        if self.available_rooms >= quantity:
+            self.available_rooms -= quantity
+            self.save()
+            return True
+        return False
 
 class Reservation(models.Model):
     guest_name = models.CharField(max_length=100)
