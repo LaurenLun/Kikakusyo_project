@@ -2,7 +2,7 @@ from django.db.models.query import QuerySet
 from django.shortcuts import render, get_object_or_404, redirect
 from .models import(
     HotelName, PlanName, HotelPictures, CyumonInfo, PlanListCalendar, 
-    Carts, CartItems, UserAddresses, Orders, OrderItems, Room, Reservation,
+    Carts, CartItems, UserAddresses, Orders, OrderItems, Room, Reservation, Carts,
 )
 from .forms import(
     CyumonInfoUpdateForm, UserAddressesInputForm,
@@ -715,7 +715,7 @@ class ConfirmOrderView(LoginRequiredMixin, TemplateView):
             
             checkin = item_context['checkin']
             checkout = item_context['checkout']
-            nights = 0
+            nights = (checkout - checkin).days if checkin and checkout else 0
             
             if checkin and checkout:
                 # if isinstance(checkin, str):
@@ -726,21 +726,28 @@ class ConfirmOrderView(LoginRequiredMixin, TemplateView):
             
             item_total = item.product.price * item.quantity * max(nights, 1)
             total_price += item_total
+            
+            # order_item = OrderItems.objects.filter(order=order, product=item.product).first()
+            # if order_item:
         
             tmp_item = {
                 'quantity': item.quantity,
-                'picture': item.product.pictures.first().image if item.product.pictures.first() else None,
+                'picture': picture.image if picture else None,
                 'name': item.product.name,
                 'price': item.product.price,
                 'id': item.id,
                 'room_type': item.product.room_type,
                 'people': item.product.people,
                 'hotel_name': item.product.hotel.name if item.product.hotel else 'Unknown Hotel',
-                'checkin': item.checkin,
-                'checkout': item.checkout,
+                'checkin': checkin,
+                'checkout': checkout,
                 'nights': nights,
                 'item_total': item_total,
-                'kupon_amount': item.kupon_amount,
+                'last_name': address.last_name,
+                'first_name': address.first_name,
+                'zip_code': address.zip_code,
+                'address': address.address,
+                'phone_number': address.phone_number,
             }        
             items.append(tmp_item)
             print(f"Item: {tmp_item['name']}, Nights: {nights}, Total: {item_total}")
@@ -788,16 +795,13 @@ class ConfirmOrderView(LoginRequiredMixin, TemplateView):
         
         kupon_amount = Decimal(request.POST.get('kupon_amount', '0'))
         total_price = Decimal(request.POST.get('total_price', '0'))
-        discounted_price = Decimal(request.POST.get('discounted_price', '0'))
+        # discounted_price = Decimal(request.POST.get('discounted_price', '0'))
+        discounted_price = max(Decimal('0'), total_price - kupon_amount)
         
-        logger.debug(f"Total price: {total_price}, Kupon amount: {kupon_amount}")
+        logger.debug(f"Total price: {total_price}, Kupon amount: {kupon_amount}, Discounted price: {discounted_price}")
         
         try: 
-            for item in cart.cartitems_set.all():
-                if item.quantity > item.product.stock:
-                    raise Http404('予約注文処理でエラーが発生しました')
-                
-                
+            
             order = Orders.objects.create(
                 user=request.user,
                 address=address,
@@ -807,10 +811,42 @@ class ConfirmOrderView(LoginRequiredMixin, TemplateView):
                 discounted_price=discounted_price               
             )
             
-            order.discounted_price = F('total_price') - F('kupon_amount')
-            order.save()
+            for item in cart.cartitems_set.all():
+                # if item.quantity > item.product.stock:
+                #     raise Http404('予約注文処理でエラーが発生しました')
+
+         
+                    order_item = OrderItems.objects.create(
+                        order=order,
+                        product=item.product,
+                        quantity=item.quantity,
+                        checkin=item.checkin,
+                        checkout=item.checkout,
+                        last_name=address.last_name,
+                        first_name=address.first_name,
+                        zip_code=address.zip_code,
+                        address=address.address,
+                        phone_number=address.phone_number,                
+                    )
+                    item.product.stock -= item.quantity
+                    item.product.save()
+                
+                    if hasattr(item.product, 'room') and item.product.room:
+                        item.product.room.available_rooms -= item.quantity
+                        item.product.room.save()
+        
             
-            order.refresh_from_db()
+            cart.delete()
+            # request.session['completed_order_id'] = order.id
+            # if 'kupon_amount' in request.session:
+            #     del request.session['kupon_amount']
+        
+            # cart.delete()
+            
+            # order.discounted_price = F('total_price') - F('kupon_amount')
+            # order.save()
+            
+            # order.refresh_from_db()
             
 
             # order = Orders.objects.insert_cart(cart, address, total_price)
@@ -819,8 +855,8 @@ class ConfirmOrderView(LoginRequiredMixin, TemplateView):
             
                         
             # order.discounted_price = discounted_price
-            OrderItems.objects.insert_cart_items(cart, order)
-            PlanName.objects.reduce_stock(cart)      
+            # OrderItems.objects.insert_cart_items(cart, order)
+            # PlanName.objects.reduce_stock(cart)      
               
             # order.save()    
             # kupon_amount = int(kupon_amount) if kupon_amount else 0
@@ -830,9 +866,8 @@ class ConfirmOrderView(LoginRequiredMixin, TemplateView):
             if 'kupon_amount' in request.session:
                 del request.session['kupon_amount']
 
-            cart.delete()
             
-            logger.info("Redirecting to order success page")
+            logger.info(f"Order {order.id} created successfully for user {request.user.id}")
             return redirect('hotel:order_success')
         
         except Exception as e:
@@ -847,21 +882,60 @@ class ConfirmOrderView(LoginRequiredMixin, TemplateView):
 @login_required
 def confirm_order(request):
     if request.method == 'POST':
-        kupon_amount = Decimal(request.POST.get('kupon_amount', 0))
-        total_price = Decimal(request.POST.get('total_price', 0))
-        discounted_price = Decimal(request.POST.get('discounted_price', 0))
+        try:
+            with transaction.atomic():
+                kupon_amount = Decimal(request.POST.get('kupon_amount', 0))
+                total_price = Decimal(request.POST.get('total_price', 0))
+                discounted_price = Decimal(request.POST.get('discounted_price', 0))
+
+                address = get_object_or_404(UserAddresses, id=request.POST.get('address_id'), user=request.user)
+
+                # 創建訂單
+                order = Orders.objects.create(
+                    user=request.user,
+                    address=address,
+                    total_price=total_price,
+                    kupon_amount=kupon_amount,
+                    discounted_price=discounted_price,
+                    
+                    # address=UserAddresses.objects.get(id=request.POST.get('address_id'))
+                )
+
+                # 创建订单项目并更新库存
+                cart = Carts.objects.get(user=request.user)
+                
+                if not cart.cartitems_set.exists():
+                    raise ValueError("予約注文に予約が入っていません")
+                
+                for cart_item in cart.cartitems_set.all():
+                    OrderItems.objects.create(
+                        order=order,
+                        product=cart_item.product,
+                        quantity=cart_item.quantity
+                    )
+
+                    if cart_item.product:
+                        if cart_item.quantity > cart_item.product.stock:
+                            raise ValueError(f"商品 {cart_item.product.name} 残部屋数不足")
+                        cart_item.product.stock -= cart_item.quantity
+                        cart_item.product.save()
+                    # if cart_item.product.room:
+                    #     room = cart_item.product.room
+                    #     room.available_rooms -= cart_item.quantity
+                    #     room.save()
         
-        # 創建訂單
-        order = Orders.objects.create(
-            total_price=total_price,
-            kupon_amount=kupon_amount,
-            user=request.user,
-            # 其他必要的字段，例如：
-            # address=UserAddresses.objects.get(id=request.POST.get('address_id'))
-        )
+                # 清空购物车
+                cart.delete()
+            
+            logger.info(f"Order {order.id} created successfully for user {request.user.id}")
+            return redirect('hotel:order_success_info', order_id=order.id)
+        except Exception as e:
+            logger.error(f"Error creating order for user {request.user.id}: {str(e)}")
+            messages.error(request, f"予約取得失敗: {str(e)}")
+            return redirect('hotel:some_error_page')
         
         # 重定向到訂單詳情頁面
-        return redirect('hotel:order_success_info', order_id=order.id)
+        # return redirect('hotel:order_success_info', order_id=order.id)
     return redirect('hotel:some_error_page')
 
 @login_required
@@ -972,10 +1046,23 @@ class OrdersListView(LoginRequiredMixin, ListView):
     model = Orders
     template_name = 'hotel/order_success_list.html'
     context_object_name = 'orders'
+    paginate_by = 10
     
     def get_queryset(self):
-        return Orders.objects.filter(user=self.request.user).order_by('-created_at')
+        # return Orders.objects.filter(user=self.request.user).order_by('-created_at')
+        return Orders.objects.filter(user=self.request.user).prefetch_related('orderitems_set').order_by('-created_at')    
     
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        orders = context['orders']
+        
+        for order in orders:
+            order.first_item = order.orderitems_set.first()
+            if order.first_item:
+                logger.info(f"Order {order.id} first item: {order.first_item.last_name} {order.first_item.first_name}")
+            else:
+                logger.warning(f"No items found for order {order.id}")
+        return context
     
 
 class OrdersDetailView(LoginRequiredMixin, DetailView):
@@ -983,18 +1070,32 @@ class OrdersDetailView(LoginRequiredMixin, DetailView):
     template_name = 'hotel/order_success_info.html'    
     context_object_name = 'order'
     
-    def get_queryset(self):
-        return Orders.objects.filter(user=self.request.user)
+    # def get_queryset(self):
+    #     return Orders.objects.filter(user=self.request.user)
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         order = self.object
         context['order_items'] = order.orderitems_set.all().select_related('product', 'product__hotel')
-        context['address'] = order.address 
-        context['kupon_amount'] = order.kupon_amount
-        context['discounted_price'] = order.discounted_price        
+        first_item = context['order_items'].first()
+        if first_item:
+            context['ordersuccess_info'] = {
+                'last_name': first_item.last_name,
+                'first_name': first_item.first_name,
+                'zip_code': first_item.zip_code,
+                'address': first_item.address,
+                'phone_number': first_item.phone_number,
+            }
+        # context['address'] = order.address 
+        # context['kupon_amount'] = order.kupon_amount
+        # context['discounted_price'] = order.discounted_price
+        # context['checkin'] = order.checkin
+        # context['checkout'] = order.checkout
+            logger.info(f"Order {order.id} ordersuccess_info: {context['ordersuccess_info']}")
+        else:
+            logger.warning(f"No items found for order {order.id}")
         return context
-    
+            
 
 
 @require_POST
@@ -1003,7 +1104,9 @@ def cancel_reservation(request, order_id):
     # reservation.cancel()
     try:
         order = get_object_or_404(Orders, id=order_id, user=request.user)
+        logger.info(f"Attempting to cancel order {order_id} for user {request.user.id}")
         order.cancel()
+        logger.info(f"Order {order_id} successfully cancelled")
         return JsonResponse({"message": "予約が正常にキャンセルされました。"})
     except Orders.DoesNotExist:
         logger.error(f"Order {order_id} not found for user {request.user.id}")
@@ -1013,18 +1116,34 @@ def cancel_reservation(request, order_id):
         return JsonResponse({"message": f"キャンセル処理中にエラーが発生しました: {str(e)}"}, status=500)
 
 def create_order(user, cart_items):
-    order = Orders.objects.create(user=user)
-    for item in cart_items:
-        OrderItems.objects.create(
-            order=order,
-            product=item.product,
-            quantity=item.quantity
-        )
-        if item.product.room:
-            room = item.product.room
-            room.available_rooms -= item.quantity
-            room.save()
-    return order
+    
+    try:
+        with transaction.atomic():     
+            order = Orders.objects.create(user=user)
+    
+            for item in cart_items:
+                OrderItems.objects.create(
+                    order=order,
+                    product=item.product,
+                    quantity=item.quantity
+                )
+                if item.product:
+                    item.product.stock -= item.quantity
+                    item.product.save()
+
+                # if item.product.room:
+                if hasattr(item.product, 'room') and item.product.room:
+                    item.product.room.available_rooms -= item.quantity
+                    item.product.room.save()
+                    # room = item.product.room
+                    # room.available_rooms -= item.quantity
+                    # room.save()
+            logger.info(f"Order created successfully for user {user.id}")     
+            return order
+    
+    except Exception as e:
+        logger.error(f"Error creating order for user {user.id}: {str(e)}")
+        raise
     
 # def room_list(request):
 #     rooms = Room.objects.all()
@@ -1060,8 +1179,10 @@ class DeleteOrderView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
     def delete(self, request, *args, **kwargs):
         try:
             self.object = self.get_object()
-            success_url = self.get_success_url()
+            logger.info(f"Attempting to cancel order {self.object.id}")
             self.object.cancel()
+            logger.info(f"Order {self.object.id} cancelled successfully")
+            success_url = self.get_success_url()
             self.object.delete()
             return HttpResponseRedirect(success_url)
        

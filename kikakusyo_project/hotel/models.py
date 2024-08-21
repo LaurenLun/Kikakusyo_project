@@ -5,6 +5,8 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 from django.conf import settings
 from decimal import Decimal
+import logging
+logger = logging.getLogger(__name__)
 
 # from .forms import HotelForm
 
@@ -242,14 +244,14 @@ class Orders(models.Model):
     def save(self, *args, **kwargs):
         # if not self.discounted_price:
         # self.discounted_price = max(0, self.total_price - self.kupon_amount)
-        if self.total_price is not None and self.kupon_amount is not None:
-            self.discounted_price = max(Decimal('0'), self.total_price - self.kupon_amount)
+        # if self.total_price is not None and self.kupon_amount is not None:
+        self.discounted_price = max(Decimal('0'), self.total_price - self.kupon_amount)
         super().save(*args, **kwargs)
     
     
-    @property
-    def calculated_discounted_price(self):
-        return max(Decimal('0'), self.total_price - self.kupon_amount)
+    # @property
+    # def calculated_discounted_price(self):
+    #     return max(Decimal('0'), self.total_price - self.kupon_amount)
     
 
     # @property
@@ -261,14 +263,34 @@ class Orders(models.Model):
     #     return max(self.total_price - self.kupon_amount, 0)
     
     def cancel(self):
+        
+        logger.info(f"Cancelling order {self.id}")
         for order_item in self.orderitems_set.all():
-            if order_item.product and order_item.product.room:
-                room = order_item.product.room
-                room.available_rooms += order_item.quantity
-                room.save()
+            product = order_item.product
+            if product:
+                logger.info(f"Restoring stock for product {product.id}: {order_item.quantity}")
+                product.stock += order_item.quantity
+                product.save()
                 
+                # if product.room:
+                if hasattr(product, 'room') and product.room:
+                    logger.info(f"Restoring available rooms for room {product.room.id}: {order_item.quantity}")
+                    product.room.available_rooms += order_item.quantity
+                    product.room.save()
+                    
+            # if order_item.product and order_item.product.room:
+            #     room = order_item.product.room
+            #     room.available_rooms += order_item.quantity
+            #     room.save()
+                
+            # 恢复 PlanName 的库存
+            # if order_item.product:
+            #     order_item.product.stock += order_item.quantity
+            #     order_item.product.save()
+                            
         self.status = 'cancelled'  # 假设有一个状态字段
         self.save()
+        logger.info(f"Order {self.id} cancelled successfully")
 
 class OrderItemsManager(models.Manager):
     
@@ -299,11 +321,20 @@ class OrderItems(models.Model):
     )
     checkin = models.DateField(null=True, blank=True)
     checkout = models.DateField(null=True, blank=True)
+    last_name = models.CharField(max_length=100, blank=True)
+    first_name = models.CharField(max_length=100, blank=True)
+    zip_code = models.CharField(max_length=20, blank=True)
+    address = models.CharField(max_length=200, blank=True)
+    phone_number = models.CharField(max_length=20, blank=True)
+    
     objects = OrderItemsManager()
     
     class Meta:
         db_table = 'order_items'
         unique_together = [['product', 'order']]
+    
+    def __str__(self):
+        return f"{self.product.name if self.product else 'Unknown'} - {self.quantity}"
         
 
 class Room(models.Model):
