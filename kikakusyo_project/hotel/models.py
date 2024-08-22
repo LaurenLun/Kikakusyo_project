@@ -284,9 +284,6 @@ class Orders(models.Model):
         db_table = 'orders'
         
     def save(self, *args, **kwargs):
-        # if not self.discounted_price:
-        # self.discounted_price = max(0, self.total_price - self.kupon_amount)
-        # if self.total_price is not None and self.kupon_amount is not None:
         self.discounted_price = max(Decimal('0'), self.total_price - self.kupon_amount)
         super().save(*args, **kwargs)
     

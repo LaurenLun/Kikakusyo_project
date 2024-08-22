@@ -34,7 +34,7 @@
         </div>
         <form method="post">
             {% csrf_token %}
-            <button type="submit" class="btn btn-danger" onclick="confirmDelete()">削除する</button>
+            <button class="btn btn-danger" onclick="confirmDelete()">削除する</button>
             <a href="{% url 'hotel:input_useraddresses' %}" class="btn btn-secondary">キャンセル</a>
         </form>
     {% comment %} {% endif %} {% endcomment %}

@@ -37,7 +37,7 @@
                     </td>
                     <td>
                     {% csrf_token %}
-                    <a href="{% url 'hotel:delete_order' pk=order.id %}" onclick="cancelReservation({{ order.id }}); return false;" class="btn btn-danger btn-sm">予約をキャンセル</a>
+                    <a href="{% url 'hotel:delete_order' pk=order.id %}"; class="btn btn-danger btn-sm">予約をキャンセル</a>
                     <script>
                     function getCookie(name) {
                         let cookieValue = null;

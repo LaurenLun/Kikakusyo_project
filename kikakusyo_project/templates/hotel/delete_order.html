@@ -7,8 +7,8 @@
     <p>ホテル名: {{ object.orderitems_set.first.product.hotel.name }}</p>
     <form method="post">
         {% csrf_token %}
-        <button type="submit" class="btn btn-danger">削除する</button>
-        <a href="{% url 'hotel:order_success_list' %}" class="btn btn-secondary">キャンセル</a>
+        <button class="btn btn-danger delete-to-cart">削除する</button>
+        <a href="{% url 'hotel:order_success_list' %}" class="btn btn-secondary" >キャンセル</a>
     </form>
 </div>
 <script>
@@ -17,5 +17,57 @@ function confirmDelete() {
         document.getElementById('deleteForm').submit();
     }
  }
+     $(document).ready(function(){
+        //$(document).on('click', '.add-to-cart-btn', function(e) {
+        var requestInProgress = false;
+
+            $('.delete-to-cart').click(function(e){ 
+                alert('Nooooooooooooooooooooo')
+            e.preventDefault();
+
+            if (requestInProgress) return;
+
+            var button = $(this); 
+            var planId = button.attr('id').split('_')[2];
+            var quantity = $("#quantity_" + planId).val();
+            var checkinDate = $('#checkin-date').val();  
+            var checkoutDate = $('#checkout-date').val(); 
+    
+            requestInProgress = true;
+            button.prop('disabled', true);
+            
+            $.ajax({
+                url: '{% url "hotel:delete_order" %}',
+                method: "POST",
+                data: {
+                    product_id: planId,
+                    quantity: quantity,
+                    csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val()
+                },
+                success: function(response){ 
+                    alert(response.message);
+                    button.text('追加成功');
+                    setTimeout(function() {
+                        button.text('予約注文に追加済み');
+                    }, 2000); //2秒後恢復
+                },
+                error: function(xhr) {
+                    if (xhr.status === 401) {
+                        alert(xhr.responseJSON.message);
+                        window.location.href = xhr.responseJSON.redirect;
+                    } else {
+                        alert(xhr.responseJSON.message || 'エラーが発生しました');
+                    }
+                    //console.log(xhr.status + ": " + xhr.responseText);
+                },
+                complete: function() {
+                    //alert('called');
+                    requestInProgress = false;
+                    button.prop('disabled', false);
+                }
+            });
+       }); 
+    });
+
 </script>
 {% endblock %}
