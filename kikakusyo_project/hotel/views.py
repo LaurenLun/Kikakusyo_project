@@ -1025,7 +1025,8 @@ class OrdersListView(LoginRequiredMixin, ListView):
     
     def get_queryset(self):
         # return Orders.objects.filter(user=self.request.user).order_by('-created_at')
-        return Orders.objects.filter(user=self.request.user).prefetch_related('orderitems_set').order_by('-created_at')    
+        # return Orders.objects.filter(user=self.request.user).prefetch_related('orderitems_set').order_by('-created_at')    
+        return Orders.objects.filter(user=self.request.user).exclude(status='cancelled').order_by('-created_at')
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -1074,7 +1075,6 @@ class OrdersDetailView(LoginRequiredMixin, DetailView):
 
 
 @require_POST
-
 def create_order_view(request):
     cart = get_cart(request.user)
     address = get_address(request.user)
@@ -1114,6 +1114,7 @@ def create_order_view(request):
         messages.error(request, "注文の作成中にエラーが発生しました。")
         return redirect('cart')
 
+@require_POST
 def cancel_reservation(request, order_id):
     try:
         order = get_object_or_404(Orders, id=order_id, user=request.user)
@@ -1126,13 +1127,13 @@ def cancel_reservation(request, order_id):
                     order_item.product.room.save()
             order.status = 'cancelled'  # 假設您有一個狀態字段
             order.save()
-        return JsonResponse({"message": "予約が正常にキャンセルされました。"})
+        return JsonResponse({"success": True, "message": "予約が正常にキャンセルされました。"})
     except Orders.DoesNotExist:
-        return JsonResponse({"message": "予約が見つかりません。"}, status=404)
+        return JsonResponse({"success": False, "message": "予約が見つかりません。"}, status=404)
     except Exception as e:
         logger.exception(f"Error cancelling order {order_id}: {str(e)}")
-        return JsonResponse({"message": f"キャンセル処理中にエラーが発生しました: {str(e)}"}, status=500)
-
+        return JsonResponse({"success": False, "message": f"キャンセル処理中にエラーが発生しました: {str(e)}"}, status=500)
+    
 class DeleteOrderView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
     model = Orders
     template_name = 'hotel/delete_order.html'
@@ -1153,13 +1154,17 @@ class DeleteOrderView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
         try:
             self.object = self.get_object()
             logger.info(f"Attempting to delete order {self.object.id}")
-            if self.object.status != 'cancelled':
-                logger.info(f"Order {self.object.id} is not cancelled. Cancelling and restoring stock.")
-                self.object.cancel_and_restore_stock()
-            else:
-                logger.info(f"Order {self.object.id} is already cancelled.")
+            with transaction.atomic():
+                for order_item in self.object.orderitems_set.all():
+                    order_item.product.stock += order_item.quantity
+                    order_item.product.save()
+                    if hasattr(order_item.product, 'room') and order_item.product.room:
+                        order_item.product.room.available_rooms += order_item.quantity
+                        order_item.product.room.save()
+                self.object.delete()            
             success_url = self.get_success_url()
-            logger.info(f"Deletion process completed for order {self.object.id}")
+            logger.info(f"Order {self.object.id} successfully deleted")
+            messages.success(request, "予約が正常に削除されました。")           
             return HttpResponseRedirect(success_url)
         except Exception as e:
             logger.exception(f"Error cancelling order: {str(e)}")

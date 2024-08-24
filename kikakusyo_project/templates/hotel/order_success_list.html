@@ -14,79 +14,108 @@
         </thead>
         <tbody>
             {% for order in orders %}
-                <tr>
-                    <td>{{ order.id }}</td>
-                    <td>{% if order.first_item %}
-                            {{ order.first_item.last_name}} {{ order.first_item.first_name }}様
-                        {% else %}
-                            情報なし
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if order.first_item %}
-                            {{ order.orderitems_set.first.product.hotel.name|default:"不明" }}
-                        {% else %}
-                            不明
-                        {% endif %}
-                    </td>
-                    {% comment %} <td>{{ order.orderitems_set.first.product.checkin }}</td>
-                    <td>{{ order.orderitems_set.first.product.checkout }}</td> {% endcomment %}
-                    {% comment %} <td>{{ order.total_price }}円</td> {% endcomment %}
-                    <td>
-                    <a href="{% url 'hotel:order_success_info' pk=order.id %}" class="btn btn-primary">詳細を見る</a>
-                    </td>
-                    <td>
-                    {% csrf_token %}
-                    <a href="{% url 'hotel:delete_order' pk=order.id %}"; class="btn btn-danger btn-sm">予約をキャンセル</a>
-                    <script>
-                    function getCookie(name) {
-                        let cookieValue = null;
-                        if (document.cookie && document.cookie !== '') {
-                            const cookies = document.cookie.split(';');
-                            for (let i = 0; i < cookies.length; i++) {
-                                const cookie = cookies[i].trim();
-                                if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                                    break;
+                {% if order.status != 'cancelled' %}
+                    <tr id="order-{{ order.id }}">
+                        <td>{{ order.id }}</td>
+                        <td>{% if order.first_item %}
+                                {{ order.first_item.last_name}} {{ order.first_item.first_name }}様
+                            {% else %}
+                                情報なし
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if order.first_item %}
+                                {{ order.orderitems_set.first.product.hotel.name|default:"不明" }}
+                            {% else %}
+                                不明
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{% url 'hotel:order_success_info' pk=order.id %}" class="btn btn-primary">詳細を見る</a>
+                        </td>
+                        <td>
+                        {% comment %} {% csrf_token %} {% endcomment %}
+                            <a href="{% url 'hotel:delete_order' pk=order.id %}"; class="btn btn-danger btn-sm">予約をキャンセル</a>
+                            {% comment %} <button onclick="cancelOrder({{ order.id }})" class="btn btn-danger btn-sm">予約をキャンセル</button> {% endcomment %}
+                        </td>
+                        <script>
+                        function getCookie(name) {
+                            let cookieValue = null;
+                            if (document.cookie && document.cookie !== '') {
+                                const cookies = document.cookie.split(';');
+                                for (let i = 0; i < cookies.length; i++) {
+                                    const cookie = cookies[i].trim();
+                                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                                        break;
+                                    }
                                 }
                             }
+                            return cookieValue;
                         }
-                        return cookieValue;
-                    }
-                    function deleteOrder(orderId) {
+                        function deleteOrder(orderId) {
 
-                            const csrftoken = getCookie('csrftoken');
-                            fetch(`/hotel/order/${orderId}/delete/`, {
-                                method: 'POST',
-                                headers: {
-                                    'X-CSRFToken': csrftoken,
-                                    'Content-Type': 'application/json'
-                                },
-                                credentials: 'same-origin'
-                            })
+                                const csrftoken = getCookie('csrftoken');
+                                fetch(`/hotel/order/${orderId}/delete/`, {
+                                    method: 'POST',
+                                    headers: {
+                                        'X-CSRFToken': csrftoken,
+                                        'Content-Type': 'application/json'
+                                    },
+                                    credentials: 'same-origin'
+                                })
 
-                            .then(response => {
-                                if (!response.ok) {
-                                    throw new Error(data.message || 'キャンセル処理中にエラーが発生しました。');
-                                }
-                                return response.json();
-                            })
-                            .then(data => {
-                                alert(data.message);
-                                window.location.reload();
-                            })
-                            .catch(error => {
-                                console.error('Error:', error);
-                                alert('キャンセル処理中にエラーが発生しました。');
-                            });
-                    } 
-                    </script>
-                    </td>
-                </tr>
+                                .then(response => {
+                                    if (!response.ok) {
+                                        throw new Error(data.message || 'キャンセル処理中にエラーが発生しました。');
+                                    }
+                                    return response.json();
+                                })
+                                .then(data => {
+                                    alert(data.message);
+                                    window.location.reload();
+                                })
+                                .catch(error => {
+                                    console.error('Error:', error);
+                                    alert('キャンセル処理中にエラーが発生しました。');
+                                });
+                        }
+                        function cancelOrder(orderId) {
+                            if (confirm('この予約をキャンセルしてもよろしいですか？')) {
+                                const csrftoken = getCookie('csrftoken');
+                                fetch(`/hotel/order/${orderId}/cancel/`, {
+                                    method: 'POST',
+                                    headers: {
+                                        'X-CSRFToken': csrftoken,
+                                        'Content-Type': 'application/json'
+                                    },
+                                    credentials: 'same-origin'
+                                })
+                                .then(response => response.json())
+                                .then(data => {
+                                    if (data.success) {
+                                        // 從 DOM 中移除訂單
+                                        document.getElementById(`order-${orderId}`).remove();
+                                        alert(data.message);
+                                    } else {
+                                        throw new Error(data.message);
+                                    }
+                                })
+                                .catch(error => {
+                                    console.error('Error:', error);
+                                    alert('キャンセル処理中にエラーが発生しました。');
+                                });
+                            }
+                        } 
+                        
+                        </script>
+                        </td>
+                    </tr>
+                {% endif %}
             {% empty %}
-            <tr>
-                <td colspan="6">予約がありません。</td>
-            </tr>
+                <tr>
+                    <td colspan="6">予約がありません。</td>
+                </tr>
             {% endfor %}
         </tbody>
     </table>
