@@ -563,17 +563,19 @@ class InputUserAddressesView(LoginRequiredMixin, CreateView):
     
     
     def form_valid(self, form):
-        # form.instance.user = self.request.user
-        # response = super().form_valid(form)
-        # if self.object:
-        #     for field, value in form.cleaned_data.items():
-        #         setattr(self.object, field, value)
-            
-        #     self.object.save()
-        
-        # else:
-        self.object = form.save(commit=False)
-        self.object.user = self.request.user
+        address_id = self.request.POST.get('address_id')
+        if address_id:
+        # 更新現有地址
+            self.object = UserAddresses.objects.get(id=address_id, user=self.request.user)
+            form.instance.id = self.object.id
+        else:
+        # 創建新地址
+            self.object = form.save(commit=False)
+            self.object.user = self.request.user
+
+
+        # self.object = form.save(commit=False)
+        # self.object.user = self.request.user
         self.object.checkin = form.cleaned_data['checkin']
         self.object.checkout = form.cleaned_data['checkout']
         self.object.save()
@@ -586,9 +588,6 @@ class InputUserAddressesView(LoginRequiredMixin, CreateView):
                 item.checkout = self.object.checkout
                 item.save()
         
-        
-        # self.object = form.save()
-        # kupon_amount = self.request.GET.get('kupon_amount', self.request.GET.get('kupon_amount', 0))
         kupon_amount = self.request.GET.get('kupon_amount', 0)
         success_url = f"{reverse('hotel:confirm_order')}?address_id={self.object.id}&kupon_amount={kupon_amount}"
         return HttpResponseRedirect(success_url)
