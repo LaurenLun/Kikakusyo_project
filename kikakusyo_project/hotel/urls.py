@@ -29,8 +29,8 @@ urlpatterns = [
     path('delete_useraddress/<int:pk>/', DeleteUserAddressView.as_view(), name='delete_useraddress'),
     path('order_success_list/', OrdersListView.as_view(), name='order_success_list'),
     path('order_success_info/<int:pk>/', OrdersDetailView.as_view(), name='order_success_info'),
-    path('delete_order/<int:pk>/', DeleteOrderView.as_view(), name='delete_order'),
+    # path('delete_order/<int:pk>/', DeleteOrderView.as_view(), name='delete_order'),
     path('error/', some_error_page, name='some_error_page'),
     path('order/<int:pk>/delete/', DeleteOrderView.as_view(), name='delete_order'),
-    path('order/<int:order_id>/cancel/', cancel_reservation, name='cancel_reservation'),
+    path('order/<int:pk>/cancel/', cancel_reservation, name='cancel_reservation'),
 ]

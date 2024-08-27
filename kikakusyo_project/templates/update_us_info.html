@@ -2,33 +2,32 @@
 {% block content %}
 <div class="container">
     <h2>登録情報変更</h2>
-    {% comment %} <ul class="list-group mb-3"> {% endcomment %}
-    {% comment %} <form method="post">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <div class="row">
-            <div class="col-md-6 mb-2">
-                <button type="submit" class="btn btn-primary">登録情報更新</button>
-                <a href="{% url 'accounts:us_info' %}" class="btn btn-secondary">戻る</a>
-            </div>
-        </div>
-    </form> {% endcomment %}
     <form method="post">
         {% csrf_token %}
         {% for field in form %}
             <div class="form-group">
                 {{ field.label_tag }}
                 {{ field }}
-                {% comment %} {% if field.errors %} {% endcomment %}
-                {% if field.name in 'zip_code,phone_number' and field.errors %}
+                {% if field.errors %}
+                {% comment %} {% if field.name in 'zip_code,phone_number' and field.errors %} {% endcomment %}
                     <div class="alert alert-danger mt-1">
                         {% for error in field.errors %}
                             {{ error }}
                         {% endfor %}
                     </div>
                 {% endif %}
+                {% if field.help_text %}
+                    <small class="form-text text-muted">{{ field.help_text }}</small>
+                {% endif %}
             </div>
         {% endfor%}
+        {% if form.non_field_errors %}
+            <div class="alert alert-danger mt-1">
+                {% for error in form.non_field_errors %}
+                    {{ error }}
+                {% endfor %}
+            </div>
+        {% endif %}
         <div class="row mt-3">
             <div class="col-md-6 mb-2">
                 <button type="submit" class="btn btn-primary">登録情報更新</button>

@@ -41,6 +41,7 @@ from django.contrib import messages
 from datetime import datetime
 from decimal import Decimal
 from django.views.decorators.cache import never_cache
+from django.core.exceptions import PermissionDenied
 # from .forms import HotelForm
 # Create your views here.
 
@@ -1048,6 +1049,13 @@ class OrdersDetailView(LoginRequiredMixin, DetailView):
     # def get_queryset(self):
     #     return Orders.objects.filter(user=self.request.user)
     
+    def get_object(self, queryset=None):
+        obj = super().get_object(queryset)
+        if obj.user != self.request.user:
+            raise PermissionDenied("この注文を表示する権限がありません。")
+        return obj
+
+    
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         order = self.object
@@ -1107,7 +1115,7 @@ def create_order_view(request):
             )
                
         cart.delete()
-        return redirect('order_success', order_id=order.id)
+        return redirect('order_success', pk=order.id)
     except Exception as e:
         logger.error(f"Error creating order: {str(e)}")
         messages.error(request, "注文の作成中にエラーが発生しました。")

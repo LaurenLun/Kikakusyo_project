@@ -27,7 +27,7 @@
         </div>
         <div class="row">
             {% comment %} <div class="col-12"> {% endcomment %}
-                <table class="table table-bordered">
+                <table class="table table-bordered centered-table">
                     <thead>
                         <tr class="table table-bordered text-center">
                             <th class="text-center">プラン名</th>
@@ -41,7 +41,7 @@
                                 {% comment %} <div class="plan-container d-flex justify-content-between align-itmes-start mb-4">
                                     <div class="plan-info p-3 border"> {% endcomment %}
                                 <tr class="text-align: start"> 
-                                    <td>   
+                                    <td class="text-center">   
                                         <h2>{{ plan.name|default:"No Name" }}</h2>
                                         <p>人数： {{ plan.people|default:"N/A" }}</p>
                                         <p>部屋タイプ： {{ plan.room_type|default:"N/A" }}</p>
@@ -50,7 +50,7 @@
                                     </td>
                                 {% comment %} <div class="plan-details p-3 border"> {% endcomment %}
                                     <td>
-                                        <ul>
+                                        <ul class="centered-list tight-list">
                                             <li>プラン名：{{ plan.name }}</li>
                                             <li>料金：{{ plan.price }}円</li>
                                             <li>残部屋数：{{ plan.stock }}部屋</li>
@@ -64,6 +64,7 @@
                                                     <li>
                                                         数量：
                                                         <input type="number" id="quantity_{{ plan.plan_id }}" name="quantity_{{ plan.plan_id }}" min="1" max="{{ plan.stock }}">
+                                                    <br>
                                                         <button id="add_product_{{ plan.plan_id }}" type="button" class="btn btn-primary add-to-cart">予約注文に追加</button>
                                                     </li>
                                                 {% endif %}
@@ -178,6 +179,24 @@
 
 {% block extra_css %}
 <style>
+    .centered-list {
+        display: inline-block;
+        text-align: center;
+    }
+
+    .tight-list {
+        padding-left: 20px; /* 調整這個值來控制黑點與文字的距離 */
+        margin-left: 0;
+    }
+
+    .tight-list li {
+        padding-left: 5px; /* 微調文字與黑點之間的間距 */
+    }
+
+    td {
+        text-align: center; /* 確保單元格內容居中 */
+    }
+
     .table {
         width: 100%;
         border-collapse: collapse;
