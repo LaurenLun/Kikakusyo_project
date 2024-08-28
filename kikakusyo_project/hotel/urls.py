@@ -5,7 +5,7 @@ from .views import(
     CyumonInfoDeleteView, InputUserAddressesView, ConfirmOrderView, OrderSuccessView,
     DeleteUserAddressView, OrdersDetailView, OrdersListView, DeleteOrderView, some_error_page,
     # room_list, reservation_confirm, 
-    cancel_reservation,
+    cancel_reservation, update_quantity, delete_item,
 )
 # from . import views
 
@@ -32,5 +32,7 @@ urlpatterns = [
     # path('delete_order/<int:pk>/', DeleteOrderView.as_view(), name='delete_order'),
     path('error/', some_error_page, name='some_error_page'),
     path('order/<int:pk>/delete/', DeleteOrderView.as_view(), name='delete_order'),
-    path('order/<int:pk>/cancel/', cancel_reservation, name='cancel_reservation'),
+    path('order/<int:order_id>/cancel/', cancel_reservation, name='cancel_reservation'),
+    path('update_quantity/', update_quantity, name='update_quantity'),
+    path('delete_item/', delete_item, name='delete_item'),
 ]

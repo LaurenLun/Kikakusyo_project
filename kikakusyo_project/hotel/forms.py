@@ -16,9 +16,25 @@ def validate_zip_code(value):
     if not re.match(pattern, value):
         raise ValidationError('郵便番号は123-4567の形式、もしくは数字7桁で入力してください。')
     
+    
+class UpdateQuantityForm(forms.Form):
+    quantity = forms.IntegerField(
+        min_value=1,
+        error_messages={
+            'min_value': '数量は1以上を入力してください。',
+            'required': '数量を入力してください。'
+        }
+    )
 
 class CyumonInfoUpdateForm(forms.ModelForm):  
-    quantity = forms.IntegerField(label='数量', min_value=1)
+    quantity = forms.IntegerField(
+        label='数量', 
+        min_value=1,
+        error_messages={
+            'min_value': '数量は1以上を入力してください。',
+            'required': '数量を入力してください。'
+        }
+    )
     id = forms.CharField(widget=forms.HiddenInput())
     
     class Meta:

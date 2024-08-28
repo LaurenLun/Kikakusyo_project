@@ -5,7 +5,7 @@ from .models import(
     Carts, CartItems, UserAddresses, Orders, OrderItems, Room, Reservation, Carts,
 )
 from .forms import(
-    CyumonInfoUpdateForm, UserAddressesInputForm,
+    CyumonInfoUpdateForm, UserAddressesInputForm, UpdateQuantityForm
 )
 from django.views.generic.list import ListView
 from django.views.generic import DetailView, ListView
@@ -302,6 +302,60 @@ class CyumonInfoView(LoginRequiredMixin, TemplateView):
 
     def get_queryset(self):
         return CyumonInfo.objects.all()
+    
+
+@login_required
+@require_POST
+def update_quantity(request):
+    form = UpdateQuantityForm(request.POST)
+    if form.is_valid():
+        item_id = request.POST.get('id')
+        quantity = form.cleaned_data['quantity']
+    
+        try:
+            cart_item = CartItems.objects.get(id=item_id, cart__user=request.user)
+        except CartItems.DoesNotExist:
+            return JsonResponse({'success': False, 'error': '商品が見つかりません。'})
+
+
+        if quantity > cart_item.product.stock:
+            return JsonResponse({'success': False, 'error': '残室数を超えています。'})
+
+        cart_item.quantity = quantity
+        cart_item.save()
+
+        # total_price = sum(item.quantity * item.product.price for item in CartItems.objects.filter(cart__user=request.user))
+
+        return JsonResponse({
+            'success': True,
+            'new_quantity': cart_item.quantity,
+            # 'new_total': str(total_price)  # Decimal 轉換為字符串
+        })
+    else:
+        # 如果表單無效，返回錯誤信息
+        errors = form.errors.as_json()
+        return JsonResponse({'success': False, 'errors': errors})
+
+
+@login_required
+@require_POST
+def delete_item(request):
+    item_id = request.POST.get('id')
+    
+    try:
+        cart_item = CartItems.objects.get(id=item_id, cart__user=request.user)
+    except CartItems.DoesNotExist:
+        return JsonResponse({'success': False, 'error': '商品が見つかりません。'})
+    
+    cart_item.delete()
+    
+    total_price = sum(item.quantity * item.product.price for item in CartItems.objects.filter(cart__user=request.user))
+    
+    return JsonResponse({
+        'success': True,
+        'new_total': str(total_price)  # Decimal 轉換為字符串
+    })
+
     
 
 class PlanListCalendarView(generic.TemplateView):
@@ -1121,8 +1175,10 @@ def create_order_view(request):
         messages.error(request, "注文の作成中にエラーが発生しました。")
         return redirect('cart')
 
+@csrf_exempt
 @require_POST
 def cancel_reservation(request, order_id):
+    
     try:
         order = get_object_or_404(Orders, id=order_id, user=request.user)
         with transaction.atomic():
@@ -1132,14 +1188,29 @@ def cancel_reservation(request, order_id):
                 if hasattr(order_item.product, 'room') and order_item.product.room:
                     order_item.product.room.available_rooms += order_item.quantity
                     order_item.product.room.save()
-            order.status = 'cancelled'  # 假設您有一個狀態字段
-            order.save()
+            order.delete()  # 或者 order.status = 'cancelled'; order.save()
         return JsonResponse({"success": True, "message": "予約が正常にキャンセルされました。"})
-    except Orders.DoesNotExist:
-        return JsonResponse({"success": False, "message": "予約が見つかりません。"}, status=404)
     except Exception as e:
         logger.exception(f"Error cancelling order {order_id}: {str(e)}")
         return JsonResponse({"success": False, "message": f"キャンセル処理中にエラーが発生しました: {str(e)}"}, status=500)
+    
+    # try:
+    #     order = get_object_or_404(Orders, id=order_id, user=request.user)
+    #     with transaction.atomic():
+    #         for order_item in order.orderitems_set.all():
+    #             order_item.product.stock += order_item.quantity
+    #             order_item.product.save()
+    #             if hasattr(order_item.product, 'room') and order_item.product.room:
+    #                 order_item.product.room.available_rooms += order_item.quantity
+    #                 order_item.product.room.save()
+    #         order.status = 'cancelled'  # 假設您有一個狀態字段
+    #         order.save()
+    #     return JsonResponse({"success": True, "message": "予約が正常にキャンセルされました。"})
+    # except Orders.DoesNotExist:
+    #     return JsonResponse({"success": False, "message": "予約が見つかりません。"}, status=404)
+    # except Exception as e:
+    #     logger.exception(f"Error cancelling order {order_id}: {str(e)}")
+    #     return JsonResponse({"success": False, "message": f"キャンセル処理中にエラーが発生しました: {str(e)}"}, status=500)
     
 class DeleteOrderView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
     model = Orders

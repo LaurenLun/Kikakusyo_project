@@ -5,33 +5,41 @@
     <p>以下の予約を削除してもよろしいですか？</p>
     <p>予約番号: {{ object.id }}</p>
     <p>ホテル名: {{ object.orderitems_set.first.product.hotel.name }}</p>
-    {% comment %} <form method="post"> {% endcomment %}
-        {% comment %} {% csrf_token %} {% endcomment %}
-    <button id="deleteButton" class="btn btn-danger">削除する</button>
-    <a href="{% url 'hotel:order_success_list' %}" class="btn btn-secondary" >キャンセル</a>
-    {% comment %} </form> {% endcomment %}
+    <form id="deleteForm" method="post" action="{% url 'hotel:cancel_reservation' object.id %}">
+        {% csrf_token %}
+        <button type="submit" id="deleteButton" class="btn btn-danger">削除する</button>
+        <a href="{% url 'hotel:order_success_list' %}" class="btn btn-secondary" >キャンセル</a>
+    </form>
 </div>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
 $(document).ready(function(){
-    $('#deleteButton').click(function(e){
+    $('#deleteForm').on('submit', function(e){
         e.preventDefault();
-        var orderId = {{ object.id }};
+        //var orderId = {{ object.id }};
         
         if(confirm('この予約情報を削除してもよろしいでしょうか？')){
             $.ajax({
-                url: '{% url "hotel:cancel_reservation" object.id %}',
+                url: $(this).attr('action'),
+                //url: '{% url "hotel:cancel_reservation" object.id %}',
                 method: "POST",
-                data: {
-                    csrfmiddlewaretoken: '{{ csrf_token }}'
+                data: $(this).serialize(),
+                dataType: 'json',
+                headers: {
+                    "X-CSRFToken": $("[name=csrfmiddlewaretoken]").val()
                 },
                 success: function(response){
-                    alert(response.message);
-                    window.location.href = '{% url "hotel:order_success_list" %}';
-                    //$('#order-' + orderId + ' .status').text('キャンセル済み');
-                    //$('#order-' + orderId + ' .cancel-button').prop('disabled', true).hide();
+                    if(response.success) {
+                        alert(response.message);
+                        window.location.href = '{% url "hotel:order_success_list" %}';
+                    } else {
+                        alert(response.message || 'エラーが発生しました');
+                    }
                 },
-                error: function(xhr){
-                    alert(xhr.responseJSON.message || 'エラーが発生しました');
+                error: function(xhr, status, error){
+                    console.error("AJAX Error: " + status + ": " + error);
+                    console.error("Response Text:", xhr.responseText);
+                    alert('エラーが発生しました: ' + error + '\n詳細: ' + xhr.responseText);
                 }
             });
         }
