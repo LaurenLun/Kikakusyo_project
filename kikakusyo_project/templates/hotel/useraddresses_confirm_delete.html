@@ -32,19 +32,41 @@
             <label>チェックアウト日:</label>
             <input type="date" class="form-control" value="{{ object.checkout|date:'Y-m-d' }}" readonly>
         </div>
+        <form id="deleteForm" method="post">
         <form method="post">
             {% csrf_token %}
-            <button class="btn btn-danger" onclick="confirmDelete()">削除する</button>
+            {% comment %} <button class="btn btn-danger" onclick="confirmDelete()">削除する</button> {% endcomment %}
+            <button type="button" class="btn btn-danger" id="deleteButton">削除する</button>
             <a href="{% url 'hotel:input_useraddresses' %}" class="btn btn-secondary">キャンセル</a>
         </form>
     {% comment %} {% endif %} {% endcomment %}
 </div>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
-function confirmDelete() {
-    if (confirm('この予約情報を削除してもよろしいでしょうか？')) {
-        document.getElementById('deleteForm').submit();
-    }
- }
+$(document).ready(function() {
+    $('#deleteButton').click(function() {
+        if (confirm('この予約情報を削除してもよろしいですか？')) {
+            $.ajax({
+                url: '{% url "hotel:delete_useraddress" object.id %}',
+                type: 'POST',
+                data: {
+                    csrfmiddlewaretoken: '{{ csrf_token }}'
+                },
+                success: function(response) {
+                    if (response.success) {
+                        alert('予約情報が正常に削除されました。');
+                        window.location.href = '{% url "hotel:input_useraddresses" %}';
+                    } else {
+                        alert('削除中にエラーが発生しました。');
+                    }
+                },
+                error: function() {
+                    alert('削除中にエラーが発生しました。');
+                }
+            });
+        }
+    });
+});
 </script>
 {% endblock %}
    

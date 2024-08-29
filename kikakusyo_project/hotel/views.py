@@ -320,6 +320,9 @@ def update_quantity(request):
 
         if quantity > cart_item.product.stock:
             return JsonResponse({'success': False, 'error': '残室数を超えています。'})
+        
+        # if quantity < 0:
+        #     return JsonResponse({'success': False, 'error': '1以上の数字を入力してください。'})
 
         cart_item.quantity = quantity
         cart_item.save()
@@ -676,7 +679,31 @@ class InputUserAddressesView(LoginRequiredMixin, CreateView):
             query = query.filter(
                 Q(checkin__lte=checkout_date) & Q(checkout__gte=checkin_date)
         )
-    
+            
+@login_required
+@require_POST
+def delete_useraddress(request, pk):
+    try:
+        address = UserAddresses.objects.get(pk=pk, user=request.user)
+        address.delete()
+        return JsonResponse({'success': True})
+    except UserAddresses.DoesNotExist:
+        return JsonResponse({'success': False, 'error': '予約情報が見つかりません。'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+
+# class DeleteUserAddressView(LoginRequiredMixin, DeleteView):
+#     model = UserAddresses
+#     template_name = 'hotel/useraddresses_confirm_delete.html'
+#     success_url = reverse_lazy('hotel:input_useraddresses')
+
+#     def get_queryset(self):
+#         return UserAddresses.objects.filter(user=self.request.user)
+
+#     def delete(self, request, *args, **kwargs):
+#         messages.success(self.request, '予約情報が正常に削除されました。')
+#         return super().delete(request, *args, **kwargs)
 
 
 class ConfirmOrderView(LoginRequiredMixin, TemplateView):
@@ -1104,10 +1131,14 @@ class OrdersDetailView(LoginRequiredMixin, DetailView):
     #     return Orders.objects.filter(user=self.request.user)
     
     def get_object(self, queryset=None):
-        obj = super().get_object(queryset)
-        if obj.user != self.request.user:
-            raise PermissionDenied("この注文を表示する権限がありません。")
-        return obj
+        try:
+            obj = super().get_object(queryset)
+            if obj.user != self.request.user:
+                raise PermissionDenied("この注文を表示する権限がありません。")
+            return obj
+        except Http404:
+            # 訂單不存在時，也拋出PermissionDenied
+            raise PermissionDenied("該当注文が存在しません。")
 
     
     def get_context_data(self, **kwargs):
@@ -1132,9 +1163,21 @@ class OrdersDetailView(LoginRequiredMixin, DetailView):
         else:
             logger.warning(f"No items found for order {order.id}")
         return context
+    
+
+# class MyView(LoginRequiredMixin, View):
+#     def index(self):
+#         if not self.request.user.is_authenticated:
+#             raise PermissionDenied
+        
+    
+def custom_permission_denied_view(request, exception):
+    return render(request, 'hotel/403.html', {
+        'exception': str(exception),
+    }, status=403)
             
 
-
+@login_required
 @require_POST
 def create_order_view(request):
     cart = get_cart(request.user)
@@ -1174,6 +1217,8 @@ def create_order_view(request):
         logger.error(f"Error creating order: {str(e)}")
         messages.error(request, "注文の作成中にエラーが発生しました。")
         return redirect('cart')
+    
+    
 
 @csrf_exempt
 @require_POST

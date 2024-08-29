@@ -136,6 +136,10 @@ class UserInfoForm(forms.ModelForm):
         
         for field in self.fields.values():
             field.widget.attrs['class'] = 'form-control'
+            
+        self.fields['email'].label = 'メールアドレス'
+        self.fields['password'].label = 'パスワード'
+        self.fields['confirm_password'].label = '確認用パスワード'
         
         # self.fields['email'].widget.attrs['placeholder'] = '変更する場合のみ入力してください'
         self.fields['password'].widget.attrs['placeholder'] = '変更する場合のみ入力してください'

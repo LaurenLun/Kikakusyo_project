@@ -7,7 +7,11 @@ from .views import(
     # room_list, reservation_confirm, 
     cancel_reservation, update_quantity, delete_item,
 )
+from django.conf.urls import handler403
+from hotel import views
 # from . import views
+
+handler403 = 'hotel.views.custom_permission_denied_view'
 
 app_name = 'hotel'
 urlpatterns = [
