@@ -33,35 +33,37 @@
             <input type="date" class="form-control" value="{{ object.checkout|date:'Y-m-d' }}" readonly>
         </div>
         <form id="deleteForm" method="post">
-        <form method="post">
             {% csrf_token %}
-            {% comment %} <button class="btn btn-danger" onclick="confirmDelete()">削除する</button> {% endcomment %}
             <button type="button" class="btn btn-danger" id="deleteButton">削除する</button>
             <a href="{% url 'hotel:input_useraddresses' %}" class="btn btn-secondary">キャンセル</a>
         </form>
-    {% comment %} {% endif %} {% endcomment %}
 </div>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
 $(document).ready(function() {
     $('#deleteButton').click(function() {
         if (confirm('この予約情報を削除してもよろしいですか？')) {
+            var form = $('#deleteForm');
             $.ajax({
                 url: '{% url "hotel:delete_useraddress" object.id %}',
                 type: 'POST',
-                data: {
-                    csrfmiddlewaretoken: '{{ csrf_token }}'
-                },
+                dataType: 'json',
+                data: form.serialize(),
                 success: function(response) {
+                    console.log('サーバーからの応答:', response);
                     if (response.success) {
                         alert('予約情報が正常に削除されました。');
                         window.location.href = '{% url "hotel:input_useraddresses" %}';
                     } else {
-                        alert('削除中にエラーが発生しました。');
+                        alert('エラー: ' + (response.error || '削除中に問題が発生しました。'));
                     }
                 },
-                error: function() {
-                    alert('削除中にエラーが発生しました。');
+                error: function(jqXHR, textStatus, errorThrown) {
+                    console.error('AJAX エラー:', textStatus, errorThrown);
+                    console.error('ステータスコード:', jqXHR.status);
+                    console.error('レスポンス本文:', jqXHR.responseText);
+                    alert('サーバーエラーが発生しました。詳細はコンソールを確認してください。');
+                    window.location.href = '{% url "hotel:input_useraddresses" %}';
                 }
             });
         }

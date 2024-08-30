@@ -66,6 +66,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'hotel.middleware.Custom403Middleware',
+    'hotel.middleware.JSONErrorMiddleware',
 ]
 
 ROOT_URLCONF = 'kikakusyo_project.urls'
