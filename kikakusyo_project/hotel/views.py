@@ -937,9 +937,9 @@ class ConfirmOrderView(LoginRequiredMixin, TemplateView):
         except Exception as e:
             logger.error(f"Error during order processing: {str(e)}")
             messages.error(request, f'予約注文処理で予期せぬエラー発生しました: {str(e)}')
-            
+            messages.error(request, f'testtttttttttttttttttttttttttttt: {str(e)}')
             return redirect('hotel:input_useraddresses')
-    
+
 
 @login_required
 def confirm_order(request):
