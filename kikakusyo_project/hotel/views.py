@@ -43,6 +43,7 @@ from decimal import Decimal
 from django.views.decorators.cache import never_cache
 from django.core.exceptions import PermissionDenied
 import json
+from django.views.decorators.http import require_http_methods
 # from .forms import HotelForm
 # Create your views here.
 
@@ -680,25 +681,29 @@ class InputUserAddressesView(LoginRequiredMixin, CreateView):
             query = query.filter(
                 Q(checkin__lte=checkout_date) & Q(checkout__gte=checkin_date)
         )
-            
+
+# @require_POST
+@csrf_exempt   
 @login_required
-@csrf_exempt
-@require_POST
+@require_http_methods(["GET", "POST"])
 def delete_useraddress(request, pk):
     try:
-        logger.info(f"Attempting to delete UserAddress with pk={pk} for user {request.user.id}")
         address = UserAddresses.objects.get(pk=pk, user=request.user)
-        address.delete()
-        logger.info(f"Successfully deleted UserAddress with pk={pk}")
-        return JsonResponse({'success': True})
+        if request.method == "POST":
+            logger.info(f"Attempting to delete UserAddress with pk={pk} for user {request.user.id}")
+            address.delete()
+            logger.info(f"Successfully deleted UserAddress with pk={pk}")
+            return JsonResponse({'success': True, 'message': '予約情報が正常に削除されました。'})
+        else:  
+            return render(request, 'hotel/useraddresses_confirm_delete.html', {'object': address})
     except UserAddresses.DoesNotExist:
         logger.warning(f"UserAddress with pk={pk} not found for user {request.user.id}")
-        return JsonResponse({'success': False, 'error': '予約情報が見つかりません。'}, status=404)
+        return JsonResponse({'success': False, 'message': '予約情報が見つかりません。'}, status=404)
     except Exception as e:
-        logger.error(f"Error deleting UserAddress with pk={pk}: {str(e)}", exc_info=True)
-        return JsonResponse({'success': False, 'error': f'削除中にエラーが発生しました。: {str(e)}'}, status=500)
+        logger.error(f"Error processing UserAddress with pk={pk}: {str(e)}", exc_info=True)
+        return JsonResponse({'success': False, 'message': f'処理中にエラーが発生しました。: {str(e)}'}, status=500)
     
-                
+                    
 # class DeleteUserAddressView(LoginRequiredMixin, DeleteView):
 #     model = UserAddresses
 #     template_name = 'hotel/useraddresses_confirm_delete.html'

@@ -3,9 +3,9 @@ from .views import(
     HotelListView, HotelSearchView, CyumonInfoView, PlanListView, 
     PlanListCalendarView, add_product, CyumonInfoUpdateView, apply_kupon,
     CyumonInfoDeleteView, InputUserAddressesView, ConfirmOrderView, OrderSuccessView,
-    DeleteUserAddressView, OrdersDetailView, OrdersListView, DeleteOrderView, some_error_page,
+    OrdersDetailView, OrdersListView, DeleteOrderView, some_error_page,
     # room_list, reservation_confirm, 
-    cancel_reservation, update_quantity, delete_item,
+    cancel_reservation, update_quantity, delete_item, delete_useraddress,
 )
 from django.conf.urls import handler403
 from hotel import views
@@ -30,7 +30,7 @@ urlpatterns = [
     path('confirm_order/', ConfirmOrderView.as_view(), name='confirm_order'),
     path('order_success/', OrderSuccessView.as_view(), name='order_success'),
     path('apply-kupon/', apply_kupon, name='apply_kupon'),
-    path('delete_useraddress/<int:pk>/', DeleteUserAddressView.as_view(), name='delete_useraddress'),
+    path('delete_useraddress/<int:pk>/', delete_useraddress, name='delete_useraddress'),
     path('order_success_list/', OrdersListView.as_view(), name='order_success_list'),
     path('order_success_info/<int:pk>/', OrdersDetailView.as_view(), name='order_success_info'),
     # path('delete_order/<int:pk>/', DeleteOrderView.as_view(), name='delete_order'),
