@@ -171,9 +171,13 @@ SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 SESSION_SAVE_EVERY_REQUEST = True
 SESSION_COOKIE_AGE = 300000 
 CSRF_COOKIE_SECURE = True
+
+CSRF_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_SAMESITE = 'Lax'
 CSRF_COOKIE_HTTPONLY = True
+
 SESSION_COOKIE_SECURE = True
-CSRF_TRUSTED_ORIGINS = ['http://laurenlun.pythonanywhere.com']
+CSRF_TRUSTED_ORIGINS = ['http://laurenlun.pythonanywhere.com', 'http://127.0.0.1:8000']
 
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 MEDIA_URL = '/media/'

@@ -2,68 +2,66 @@
 {% block content %}
 <div class="col-10 offset-1">
     <h2>予約情報の削除確認</h2>
-    {% comment %} {{ if object }} {% endcomment %}
         <div class="form-group">
             <label>名前(姓):</label>
-            <input type="text" class="form-control" value="{{ object.last_name }}" readonly>
+            <input type="text" class="form-control" id="last_name" name="last_name" value="{{ object.last_name }}" readonly>
         </div>
     
         <div class="form-group">
             <label>名前(名):</label>
-            <input type="text" class="form-control" value="{{ object.first_name }}" readonly>
+            <input type="text" class="form-control" id="first_name" name="first_name" value="{{ object.first_name }}" readonly>
         </div>
         <div class="form-group">
             <label>郵便番号:</label>
-            <input type="text" class="form-control" value="{{ object.zip_code }}" readonly>
+            <input type="text" class="form-control" id="zip_code" name="zip_code" value="{{ object.zip_code }}" readonly>
         </div>
         <div class="form-group">
             <label>住所:</label>
-            <input type="text" class="form-control" value="{{ object.address }}" readonly>
+            <input type="text" class="form-control" id="address" name="address" value="{{ object.address }}" readonly>
         </div>
         <div class="form-group">
             <label>電話番号:</label>
-            <input type="text" class="form-control" value="{{ object.phone_number }}" readonly>
+            <input type="text" class="form-control" id="phone_number" name="phone_number" value="{{ object.phone_number }}" readonly>
         </div>
         <div class="form-group">
             <label>チェックイン日:</label>
-            <input type="date" class="form-control" value="{{ object.checkin|date:'Y-m-d' }}" readonly>
+            <input type="date" class="form-control" id="checkin" name="checkin" value="{{ object.checkin|date:'Y-m-d' }}" readonly>
         </div>
         <div class="form-group">
             <label>チェックアウト日:</label>
-            <input type="date" class="form-control" value="{{ object.checkout|date:'Y-m-d' }}" readonly>
+            <input type="date" class="form-control" id="checkout" name="checkout" value="{{ object.checkout|date:'Y-m-d' }}" readonly>
         </div>
-        <form id="deleteForm" method="post">
+        <form id="deleteForm" method="post" action="{% url 'hotel:delete_useraddress' object.id %}">
             {% csrf_token %}
-            <button type="button" class="btn btn-danger" id="deleteButton">削除する</button>
+            <button type="button" class="btn btn-danger" id="deleteButton" name="deleteButton">削除する</button>
             <a href="{% url 'hotel:input_useraddresses' %}" class="btn btn-secondary">キャンセル</a>
         </form>
 </div>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
 $(document).ready(function() {
-    $('#deleteButton').click(function() {
+    $('#deleteButton').click(function(e) {
+        e.preventDefault();
         if (confirm('この予約情報を削除してもよろしいですか？')) {
-            var form = $('#deleteForm');
             $.ajax({
                 url: '{% url "hotel:delete_useraddress" object.id %}',
                 type: 'POST',
                 dataType: 'json',
-                data: form.serialize(),
+                headers: {
+                    'X-CSRFToken': $('input[name=csrfmiddlewaretoken]').val()
+                },
                 success: function(response) {
                     console.log('サーバーからの応答:', response);
                     if (response.success) {
-                        alert('予約情報が正常に削除されました。');
+                        alert(response.message);
                         window.location.href = '{% url "hotel:input_useraddresses" %}';
                     } else {
-                        alert('エラー: ' + (response.error || '削除中に問題が発生しました。'));
+                        alert('エラー: ' + response.message);
                     }
                 },
                 error: function(jqXHR, textStatus, errorThrown) {
                     console.error('AJAX エラー:', textStatus, errorThrown);
-                    console.error('ステータスコード:', jqXHR.status);
-                    console.error('レスポンス本文:', jqXHR.responseText);
-                    alert('サーバーエラーが発生しました。詳細はコンソールを確認してください。');
-                    window.location.href = '{% url "hotel:input_useraddresses" %}';
+                    alert('サーバーエラーが発生しました。');
                 }
             });
         }
