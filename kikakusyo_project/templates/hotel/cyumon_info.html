@@ -15,21 +15,27 @@
                             <h6>ホテル名： {{ item.hotel_name }}</h6>
                             <h6>プラン名： {{ item.name }}</h6>
                             <h6>料金： {{ item.price }}円</h6>
-                            <h6>数量： {{ item.quantity }}個</h6>
+                            <h6>数量： <span id="quantity-{{ item.id }}">{{ item.quantity }}</span>個</h6>
                             {% if not item.in_stock %}
                             <p style="color: red;">残室数を超えています。変更してください</p>
                             {% endif %}
                         </div>
                         <div style="flex: 1; text-align: right;">
-                            <a class="btn btn-primary" href="{% url 'hotel:cyumoninfo_update' pk=item.id %}">変更する</a>
-                            <a class="btn btn-danger" href="{% url 'hotel:cyumoninfo_delete' pk=item.id %}">削除する</a>
+                            <p>残室数: {{ item.product.stock }}部屋</p>
+                            <div style="display: flex; justify-content: flex-end; align-items: center;">
+                                <label for="new-quantity-{{ item.id }}" style="margin-right: 5px;">部屋数：</label>
+                                <input type="number" id="new-quantity-{{ item.id }}" value="{{ item.quantity }}" min="1" max="{{ item.product.stock }}" style="width: 60px;">
+                            </div>
+                            <button class="btn btn-primary update-quantity" data-item-id="{{ item.id }}">変更する</button>
+                            <button class="btn btn-danger delete-item" data-item-id="{{ item.id }}">削除する</button>
                         </div>
                     </div>
                 </div>
             {% endfor %}
-            <div class="order-summary">
-                <form id="kuponForm" method="POST" action="{% url 'hotel:apply_kupon' %}">
-                    {% csrf_token %}
+        </div>
+        <div class="order-summary">
+            <form id="kuponForm" method="POST" action="{% url 'hotel:apply_kupon' %}">
+                {% csrf_token %}
                 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
                 <script>
                 $(document).ready(function() {
@@ -48,102 +54,99 @@
                                 $('#discounted_price').text(data.discounted_price);
                                 $('#kupon_amount').val(data.kupon_amount);
                                 $('.btn-primary').attr('href', "{% url 'hotel:input_useraddresses' %}?kupon_amount=" + data.kupon_amount);
-
                                 alert(data.kupon_amount);
                                 alert(kupon_amount);
                             },
-                            
+
                             error: function(jqXHR, textStatus, errorThrown) {
                                 console.error("AJAX エラー:", textStatus, errorThrown);
                                 alert("クーポンの適用に失敗しました。もう一度お試しください。");
                             }
                         }); 
                     }); 
-                });     
+                });
                 </script> 
-                <div class="total-price">
-                    <p>合計： <span id="total_price">{{ total_price }}</span>円</p>
-                    {% comment %} <p>クーポン適用後： <span id="discounted_price">{{ discounted_price }}</span>円</p> {% endcomment %}
-                </div>
-                <div class="submit-button">
-                    {% comment %} <button type="submit" class="btn btn-primary" href="{% url 'hotel:input_useraddresses' %}?kupon_amount={{ kupon_amount }}" class="btn btn-primary">予約情報を入力する</button> {% endcomment %}
-                    <a href="{% url 'hotel:input_useraddresses' %}?kupon_amount={{ kupon_amount }}" class="btn btn-primary">予約情報を入力する</a>
-                </div>
+            </form> 
+            <div class="total-price">
+                <p>合計： <span id="total_price">{{ total_price }}</span>円</p>
+            </div>
+            <div class="submit-button">
+                <a href="{% url 'hotel:input_useraddresses' %}?kupon_amount={{ kupon_amount }}" class="btn btn-primary">予約情報を入力する</a>
             </div>
         </div>
     {% else %}
         <h2>予約注文に予約が取られていません</h2>
     {% endif %}
 </div>
-{% endblock %}
 
-{% comment %} <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
-$(document).ready(function(){
-    $('.update-quantity').click(function(){
-        var itemId = $(this).data('id');
-        var newQuantity = prompt("新しい数量を入力してください：");
-        if (newQuantity !== null && newQuantity !== "") {
-            updateQuantity(itemId, newQuantity);
-        }
-    });
+$(document).ready(function() {
+    $('.update-quantity').on('click', function() {
+        var itemId = $(this).data('item-id');
+        var newQuantity = $('#new-quantity-' + itemId).val();
 
-    $('.delete-item').click(function(){
-        var itemId = $(this).data('id');
-        if (confirm('この予約注文を削除してもよろしいでしょうか？')) {
-            deleteItem(itemId);
+        if (newQuantity <= 0) {
+            alert('0以上の値を入力してください');
+            return;
         }
-    });
 
-    function updateQuantity(itemId, quantity) {
         $.ajax({
             url: '{% url "hotel:update_quantity" %}',
-            method: "POST",
+            type: 'POST',
             data: {
-                item_id: itemId,
-                quantity: quantity,
-                csrfmiddlewaretoken: '{{ csrf_token }}'
+                'id': itemId,
+                'quantity': newQuantity,
+                'csrfmiddlewaretoken': '{{ csrf_token }}'
             },
-            success: function(response){
-                if(response.success) {
-                    $('#item-' + itemId + ' .item-quantity').text(response.new_quantity);
+            success: function(response) {
+                if (response.success) {
+                    $('#quantity-' + itemId).text(response.new_quantity);
                     $('#total_price').text(response.new_total);
-                    alert('数量が更新されました。');
+                    alert('部屋数を変更いたしました');
                 } else {
-                    alert(response.error);
+                    alert(response.error || '更新に失敗しました');
                 }
             },
-            error: function(xhr){
-                alert('エラーが発生しました');
+            error: function(jqXHR, textStatus, errorThrown) {
+                alert('エラーが発生しました：' + (jqXHR.responseJSON ? jqXHR.responseJSON.error : '不明なエラー'));
             }
         });
-    }
+    });
 
-    function deleteItem(itemId) {
-        $.ajax({
-            url: '{% url "hotel:delete_item" %}',
-            method: "POST",
-            data: {
-                item_id: itemId,
-                csrfmiddlewaretoken: '{{ csrf_token }}'
-            },
-            success: function(response){
-                if(response.success) {
-                    $('#item-' + itemId).remove();
-                    $('#total_price').text(response.new_total);
-                    alert('予約が削除されました。');
-                } else {
-                    alert(response.error);
+    $('.delete-item').on('click', function() {
+        var itemId = $(this).data('item-id');
+        if (confirm('本当に削除しますか？')) {
+            $.ajax({
+                url: '{% url "hotel:delete_item" %}',
+                type: 'POST',
+                data: {
+                    'id': itemId,
+                    'csrfmiddlewaretoken': '{{ csrf_token }}'
+                },
+                success: function(response) {
+                    if (response.success) {
+                        $('#item-' + itemId).remove();
+                        if (response.items_count > 0) {
+                            $('#total_price').text(response.new_total);
+                        } else {
+                            // 如果沒有項目了，刷新整個頁面
+                            location.reload();
+                        }
+                        alert('予約注文の削除に成功しました');
+                    } else {
+                        alert(response.error);
+                    }
+                },
+                error: function() {
+                    alert('エラーが発生しました。もう一度お試しください。');
                 }
-            },
-            error: function(xhr){
-                alert('エラーが発生しました');
-            }
-        });
-    }
+            });
+        }
+    });
 });
-</script> {% endcomment %}
-
+</script>
+{% endblock %}
 
 
 {% block extra_css %}

@@ -57,17 +57,19 @@
                                             {% comment %} <li> plan id: {{plan.plan_id}} </li> {% endcomment %}
                                             {% comment %} <a href="{% url 'hotel:plan_list' hotel_id=hotel.id %}">Plan Details</a> {% endcomment %}
                                             {% if plan.stock %}
-                                                
-                                                {% if plan.id in cartitems %}
-                                                    <p class="btn btn-danger">予約注文に追加済みです</p>
+                                                {% if is_authenticated %}
+                                                    {% if plan.id in cartitems %}
+                                                        <p class="btn btn-danger">予約注文に追加済みです</p>
+                                                    {% else %}
+                                                        <li>
+                                                            数量：
+                                                            <input type="number" id="quantity_{{ plan.plan_id }}" name="quantity_{{ plan.plan_id }}" min="1" max="{{ plan.stock }}">
+                                                        </li>
+                                                        <p class="text-center"><button id="add_product_{{ plan.plan_id }}" type="button" class="btn btn-primary add-to-cart">予約注文に追加</button></p>
+                                                    {% endif %}
                                                 {% else %}
-                                                    <li>
-                                                        数量：
-                                                        <input type="number" id="quantity_{{ plan.plan_id }}" name="quantity_{{ plan.plan_id }}" min="1" max="{{ plan.stock }}">
-                                                    </li>
-                                                    <p class="text-center"><button id="add_product_{{ plan.plan_id }}" type="button" class="btn btn-primary add-to-cart">予約注文に追加</button></p>
+                                                    <a href="{% url 'accounts:us_login' %}?next={{ request.path }}" class="btn btn-primary">ログイン後に予約は可能になります</a>
                                                 {% endif %}
-                                                
                                             {% endif %}
                                         </ul>
                                     </td>

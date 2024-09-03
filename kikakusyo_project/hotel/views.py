@@ -1,5 +1,6 @@
 from django.db.models.query import QuerySet
 from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib.auth import authenticate, login
 from .models import(
     HotelName, PlanName, HotelPictures, CyumonInfo, PlanListCalendar, 
     Carts, CartItems, UserAddresses, Orders, OrderItems, Room, Reservation, Carts,
@@ -50,6 +51,23 @@ from django.views.decorators.http import require_http_methods
 def hotel_search(request):
     hotels = HotelName.objects.all()
     return render(request, 'hotel_search.html', {'hotels': hotels})
+
+
+def login_view(request):
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            login(request, user)
+            next_url = request.GET.get('next')
+            if next_url:
+                return redirect(next_url)
+            else:
+                return redirect('home')  # 或其他默認頁面
+        else:
+            messages.error(request, 'Invalid username or password')
+    return render(request, 'us_login.html')
 
 @never_cache
 def plan_list_view(request, hotel_id):
@@ -149,20 +167,13 @@ class PlanListView(ListView):
     def get(self, request, *args, **kwargs):
         self.object_list = self.get_queryset()
         context = self.get_context_data()
-        # hotel_id = self.kwargs.get('hotel_id')
-        # plan = {
-        #     "id": list(range(1, 17))
-        # }
-        # context['plan'] = plan
-        # context['is_addedList_ForHtml'] = {id: 0 for id in plan['id']}
-        # context['hotel_id'] = hotel_id
         return self.render_to_response(context)
     
-    def dispatch(self, request, *args, **kwargs):
-        if not request.user.is_authenticated:
-            messages.info(request, 'ログインしてから予約注文に進んでください')
-            return redirect('accounts:us_login')
-        return super().dispatch(request, *args, **kwargs)
+    # def dispatch(self, request, *args, **kwargs):
+    #     if not request.user.is_authenticated:
+    #         messages.info(request, 'ログインしてから予約注文に進んでください')
+    #         return redirect('accounts:us_login')
+    #     return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -172,22 +183,22 @@ class PlanListView(ListView):
         context['room_type'] = self.room_type
         context['descending'] = self.request.GET.get('order_by_price') == '1'
         context['ascending'] = self.request.GET.get('order_by_price') == '2'
-        # context['checkin_date'] = self.request.GET.get('checkin', '')
-        # context['checkout_date'] = self.request.GET.get('checkout', '')
         
-        cart, _ = Carts.objects.get_or_create(user=self.request.user)
+        context['is_authenticated'] = self.request.user.is_authenticated
         
+        if self.request.user.is_authenticated:
+            cart, _ = Carts.objects.get_or_create(user=self.request.user)
         # 124~133 小李
-        if 'cartitems' not in context:
-            context['cartitems'] = []
-        for i in range(1, 16):
-            if CartItems.objects.filter(
-                cart_id=self.request.user.id,
-                product_id=i
-            ).exists():
-                context['cartitems'].append(i)
-            elif i in context['cartitems']:
-                context['cartitems'].remove(i)
+            if 'cartitems' not in context:
+                context['cartitems'] = []
+            for i in range(1, 16):
+                if CartItems.objects.filter(
+                    cart_id=self.request.user.id,
+                    product_id=i
+                ).exists():
+                    context['cartitems'].append(i)
+                elif i in context['cartitems']:
+                    context['cartitems'].remove(i)
         
         # 136~140 香港同事
         # for i in range(1, 16):
@@ -255,6 +266,7 @@ class PlanListView(ListView):
         
         return query
     
+
          
 class CyumonInfoView(LoginRequiredMixin, TemplateView):
     model = CyumonInfo
@@ -286,6 +298,7 @@ class CyumonInfoView(LoginRequiredMixin, TemplateView):
                 'price': item.product.price,
                 'in_stock': in_stock,
                 'hotel_name': item.product.hotel.name if item.product.hotel else 'Unknown Hotel',
+                'product': item.product,
                 # 'checkin': item.product.checkin,
                 # 'checkout': item.product.checkout,
             }
@@ -321,7 +334,7 @@ def update_quantity(request):
 
 
         if quantity > cart_item.product.stock:
-            return JsonResponse({'success': False, 'error': '残室数を超えています。'})
+            return JsonResponse({'success': False, 'error': '残室数を超えています。残室数以下の数値を入力してください。'})
         
         # if quantity < 0:
         #     return JsonResponse({'success': False, 'error': '1以上の数字を入力してください。'})
@@ -329,12 +342,12 @@ def update_quantity(request):
         cart_item.quantity = quantity
         cart_item.save()
 
-        # total_price = sum(item.quantity * item.product.price for item in CartItems.objects.filter(cart__user=request.user))
+        total_price = sum(item.quantity * item.product.price for item in CartItems.objects.filter(cart__user=request.user))
 
         return JsonResponse({
             'success': True,
             'new_quantity': cart_item.quantity,
-            # 'new_total': str(total_price)  # Decimal 轉換為字符串
+            'new_total': total_price  
         })
     else:
         # 如果表單無效，返回錯誤信息
@@ -354,11 +367,14 @@ def delete_item(request):
     
     cart_item.delete()
     
-    total_price = sum(item.quantity * item.product.price for item in CartItems.objects.filter(cart__user=request.user))
+    remaining_items = CartItems.objects.filter(cart__user=request.user)
+    items_count = remaining_items.count()
+    total_price = sum(item.quantity * item.product.price for item in remaining_items)
     
     return JsonResponse({
         'success': True,
-        'new_total': str(total_price)  # Decimal 轉換為字符串
+        'new_total': str(total_price), # Decimal 轉換為字符串
+        'items_count': items_count
     })
 
     
@@ -503,16 +519,16 @@ def add_product(request):
     return JsonResponse({'message': '無効なリクエストです'}, status=400)
 
 
-class CyumonInfoUpdateView(LoginRequiredMixin, UpdateView):
-    template_name = os.path.join('hotel', 'cyumoninfo_update.html')
-    form_class = CyumonInfoUpdateForm
-    model = CartItems
-    success_url = reverse_lazy('hotel:cyumon_info')
+# class CyumonInfoUpdateView(LoginRequiredMixin, UpdateView):
+#     template_name = os.path.join('hotel', 'cyumoninfo_update.html')
+#     form_class = CyumonInfoUpdateForm
+#     model = CartItems
+#     success_url = reverse_lazy('hotel:cyumon_info')
 
-class CyumonInfoDeleteView(LoginRequiredMixin, DeleteView):
-    template_name = os.path.join('hotel', 'cyumoninfo_delete.html')
-    model = CartItems
-    success_url = reverse_lazy('hotel:cyumon_info')
+# class CyumonInfoDeleteView(LoginRequiredMixin, DeleteView):
+#     template_name = os.path.join('hotel', 'cyumoninfo_delete.html')
+#     model = CartItems
+#     success_url = reverse_lazy('hotel:cyumon_info')
 
 class InputUserAddressesView(LoginRequiredMixin, CreateView):
     template_name = os.path.join('hotel', 'input_useraddresses.html')

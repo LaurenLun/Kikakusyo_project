@@ -1,8 +1,8 @@
 from django.urls import path
 from .views import(
     HotelListView, HotelSearchView, CyumonInfoView, PlanListView, 
-    PlanListCalendarView, add_product, CyumonInfoUpdateView, apply_kupon,
-    CyumonInfoDeleteView, InputUserAddressesView, ConfirmOrderView, OrderSuccessView,
+    PlanListCalendarView, add_product, apply_kupon,
+    InputUserAddressesView, ConfirmOrderView, OrderSuccessView,
     OrdersDetailView, OrdersListView, DeleteOrderView, some_error_page,
     # room_list, reservation_confirm, 
     cancel_reservation, update_quantity, delete_item, delete_useraddress,
@@ -23,8 +23,8 @@ urlpatterns = [
     path('cyumon_info/', CyumonInfoView.as_view(), name='cyumon_info'),
     path('cyumon_info/<int:hotel_id>/', CyumonInfoView.as_view(), name='cyumon_info'),
     path('add_product/', add_product, name='add_product'),
-    path('cyumoninfo_update/<int:pk>/', CyumonInfoUpdateView.as_view(), name='cyumoninfo_update'),
-    path('cyumoninfo_delete/<int:pk>/', CyumonInfoDeleteView.as_view(), name='cyumoninfo_delete'),
+    path('update_quantity/', update_quantity, name='update_quantity'),
+    path('delete_item/', delete_item, name='delete_item'),
     path('input_useraddresses/', InputUserAddressesView.as_view(), name='input_useraddresses'),
     path('input_useraddresses/<int:pk>/', InputUserAddressesView.as_view(), name='input_useraddresses_update'),
     path('confirm_order/', ConfirmOrderView.as_view(), name='confirm_order'),
