@@ -1,5 +1,5 @@
 from typing import Any
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.shortcuts import render, redirect
 from django.views.generic import CreateView, TemplateView
 from django.views.generic.edit import FormView, UpdateView
@@ -15,7 +15,8 @@ from django.core.exceptions import ValidationError
 from django.contrib import messages
 from django.contrib.auth.models import User
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy, reverse
+from django.contrib.auth import update_session_auth_hash, get_user
 
 # Create your views here.
 
@@ -137,17 +138,26 @@ class UpdateUserInfoView(LoginRequiredMixin, UpdateView):
     def form_valid(self, form):
         # form.update(user=self.request.user)
         user = form.save(commit=False)
+        password_changed = False
         if form.cleaned_data['password']:
+            print("Password is being changed")
             user.set_password(form.cleaned_data['password'])
+            password_changed = True
         user.save()
-        if form.cleaned_data['password']:
+        
+        if password_changed:
+            print("Updating session auth hash")
             update_session_auth_hash(self.request, user)
+        
+        # from django.contrib.auth import get_user
+        current_user = get_user(self.request)
+        print(f"Is user authenticated after password change: {current_user.is_authenticated}")
+    
         messages.success(self.request, 'ユーザー情報が更新されました。')
-        return super().form_valid(form)
+        return HttpResponseRedirect(reverse('accounts:us_info'))
+        # return super().form_valid(form)
     
     def form_invalid(self, form):
-        # messages.error(self.request, '入力内容に誤りがあります。')
-        # return super().form_invalid(form)
         for field, errors in form.errors.items():
             for error in errors:
                 if field != '__all__': 

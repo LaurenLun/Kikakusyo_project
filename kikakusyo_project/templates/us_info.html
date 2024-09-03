@@ -9,10 +9,8 @@
         <li class="list-group-item">住所: {{ user.address }}</li>
         <li class="list-group-item">電話番号: {{ user.phone_number }}</li>
         <li class="list-group-item">メールアドレス: {{ user.email }}</li>
-        {% comment %} <li class="list-group-item">パスワード: {{ user.password }}</li> {% endcomment %}
     </ul>
     <a href="{% url 'accounts:update_us_info' %}" class="btn btn-primary">登録情報変更</a>
-    {% comment %} <a href="{% url 'accounts:update_email' %}" class="btn btn-secondary">メールアドレス変更</a> {% endcomment %}
 </div>
 {% comment %} <form method="POST" style="text-align: center;">
     {% csrf_token %}

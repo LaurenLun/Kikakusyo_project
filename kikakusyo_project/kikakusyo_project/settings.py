@@ -167,6 +167,8 @@ LOGIN_URL = '/accounts/us_login'
 LOGIN_REDIRECT_URL = '/accounts/home'
 LOGOUT_REDIRECT_URL = '/accounts/us_login'
 
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 SESSION_SAVE_EVERY_REQUEST = True
 SESSION_COOKIE_AGE = 300000 
